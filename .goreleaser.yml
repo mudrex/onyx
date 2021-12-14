@@ -59,15 +59,11 @@ brews:
     # Default is empty.
     download_strategy: CurlDownloadStrategy
 
-    # Allows you to add a custom require_relative at the top of the formula template
-    # Default is empty
-    custom_require: custom_download_strategy
-
     # Git author used to commit to the repository.
     # Defaults are shown.
     commit_author:
-      name: goreleaserbot
-      email: goreleaser@carlosbecker.com
+      name: agrim123
+      email: agrim@mudrex.com
 
     # The project name and current git tag are used in the format string.
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
