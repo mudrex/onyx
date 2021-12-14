@@ -3,9 +3,9 @@ package ec2
 import (
 	"context"
 
-	"bitbucket.org/mudrex/onyx/pkg/logger"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ec2Lib "github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/mudrex/onyx/pkg/logger"
 )
 
 type Instance struct {

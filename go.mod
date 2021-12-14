@@ -1,4 +1,4 @@
-module bitbucket.org/mudrex/onyx
+module github.com/mudrex/onyx
 
 go 1.16
 

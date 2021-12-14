@@ -5,8 +5,8 @@ import (
 	"errors"
 	"log"
 
-	"bitbucket.org/mudrex/onyx/pkg/core/ecs"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/mudrex/onyx/pkg/core/ecs"
 	"github.com/spf13/cobra"
 )
 

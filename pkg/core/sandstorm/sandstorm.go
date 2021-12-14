@@ -3,11 +3,11 @@ package sandstorm
 import (
 	"context"
 
-	"bitbucket.org/mudrex/onyx/pkg/logger"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/mudrex/onyx/pkg/logger"
 )
 
 type Service struct {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bitbucket.org/mudrex/onyx/cmd"
+	"github.com/mudrex/onyx/cmd"
 )
 
 func main() {
