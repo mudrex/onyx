@@ -30,3 +30,88 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+
+brews:
+  -
+    name: mudrex/onyx
+    goarm: 6
+
+    # GitHub/GitLab repository to push the formula to
+    tap:
+      owner: mudrex
+      name: homebrew-tap
+      # Optionally a branch can be provided. If the branch does not exist, it
+      # will be created. If no branch is listed, the default branch will be used
+      branch: master
+      # Optionally a token can be provided, if it differs from the token provided to GoReleaser
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+    # Template for the url which is determined by the given Token (github or gitlab)
+    # Default for github is "https://github.com/<repo_owner>/<repo_name>/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    # Default for gitlab is "https://gitlab.com/<repo_owner>/<repo_name>/-/releases/{{ .Tag }}/downloads/{{ .ArtifactName }}"
+    # Default for gitea is "https://gitea.com/<repo_owner>/<repo_name>/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    url_template: "http://github.com/mudrex/onyx/releases/{{ .Tag }}/{{ .ArtifactName }}"
+
+    # Allows you to set a custom download strategy. Note that you'll need
+    # to implement the strategy and add it to your tap repository.
+    # Example: https://docs.brew.sh/Formula-Cookbook#specifying-the-download-strategy-explicitly
+    # Default is empty.
+    download_strategy: CurlDownloadStrategy
+
+    # Allows you to add a custom require_relative at the top of the formula template
+    # Default is empty
+    custom_require: custom_download_strategy
+
+    # Git author used to commit to the repository.
+    # Defaults are shown.
+    commit_author:
+      name: Agrim Mittal
+      email: agrim@mudrex.com
+
+    # The project name and current git tag are used in the format string.
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Folder inside the repository to put the formula.
+    # Default is the root folder.
+    folder: Formula
+
+    # Caveats for the user of your binary.
+    # Default is empty.
+    caveats: "How to use this binary"
+
+    # Your app's homepage.
+    # Default is empty.
+    homepage: "https://mudrex.com/"
+
+    # Template of your app's description.
+    # Default is empty.
+    description: "Onyx is a small wrapper over AWS SDK to perform some console ui tasks easily via command line!"
+
+    # SPDX identifier of your app's license.
+    # Default is empty.
+    license: "MIT"
+
+    # Setting this will prevent goreleaser to actually try to commit the updated
+    # formula - instead, the formula file will be stored on the dist folder only,
+    # leaving the responsibility of publishing it to the user.
+    # If set to auto, the release will not be uploaded to the homebrew tap
+    # in case there is an indicator for prerelease in the tag e.g. v1.0.0-rc1
+    # Default is false.
+    skip_upload: true
+
+    # Custom block for brew.
+    # Can be used to specify alternate downloads for devel or head releases.
+    # Default is empty.
+    custom_block: |
+      head "https://github.com/mudrex/onyx.git"
+
+    # Packages your package depends on.
+    dependencies:
+      - name: git
+      - name: zsh
+        type: optional
+
+    # Custom install script for brew.
+    # Default is 'bin.install "program"'.
+    install: |
+      bin.install "program"
