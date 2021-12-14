@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"bitbucket.org/mudrex/onyx/pkg/core/ec2"
-	"bitbucket.org/mudrex/onyx/pkg/logger"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/mudrex/onyx/pkg/core/ec2"
+	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/spf13/cobra"
 )
 

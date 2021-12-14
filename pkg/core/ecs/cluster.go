@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"bitbucket.org/mudrex/onyx/pkg/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecsLib "github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
+	"github.com/mudrex/onyx/pkg/utils"
 )
 
 type Cluster struct {

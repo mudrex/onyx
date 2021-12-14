@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"bitbucket.org/mudrex/onyx/pkg/core/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/mudrex/onyx/pkg/core/cloudwatch"
 	"github.com/spf13/cobra"
 )
 

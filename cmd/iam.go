@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"bitbucket.org/mudrex/onyx/pkg/core/iam"
-	"bitbucket.org/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/core/iam"
+	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/spf13/cobra"
 )
 

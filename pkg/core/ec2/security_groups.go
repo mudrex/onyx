@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"bitbucket.org/mudrex/onyx/pkg/core/iam"
-	"bitbucket.org/mudrex/onyx/pkg/logger"
-	"bitbucket.org/mudrex/onyx/pkg/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	ec2Lib "github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/mudrex/onyx/pkg/core/iam"
+	"github.com/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/utils"
 )
 
 var reverseAllowedRules = map[int32]string{

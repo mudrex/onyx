@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"bitbucket.org/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/logger"
 )
 
 var sources = []string{
