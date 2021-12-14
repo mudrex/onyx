@@ -34,7 +34,7 @@ changelog:
 # .goreleaser.yml
 brews:
   -
-    name: mudrex-onyx
+    name: onyx
     goarm: 6
 
     # GitHub/GitLab repository to push the formula to
@@ -48,10 +48,7 @@ brews:
       token: "{{ .Env.GITHUB_TOKEN }}"
 
     # Template for the url which is determined by the given Token (github or gitlab)
-    # Default for github is "https://github.com/<repo_owner>/<repo_name>/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    # Default for gitlab is "https://gitlab.com/<repo_owner>/<repo_name>/-/releases/{{ .Tag }}/downloads/{{ .ArtifactName }}"
-    # Default for gitea is "https://gitea.com/<repo_owner>/<repo_name>/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    url_template: "http://github.com/mudrex/onyx/releases/{{ .Tag }}/{{ .ArtifactName }}"
+    url_template: "http://github.com/mudrex/onyx/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
 
     # Allows you to set a custom download strategy. Note that you'll need
     # to implement the strategy and add it to your tap repository.
