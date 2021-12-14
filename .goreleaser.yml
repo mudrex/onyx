@@ -39,7 +39,7 @@ brews:
 
     # GitHub/GitLab repository to push the formula to
     tap:
-      owner: agrim123
+      owner: mudrex
       name: mudrex/homebrew-onyx
       # Optionally a branch can be provided. If the branch does not exist, it
       # will be created. If no branch is listed, the default branch will be used
