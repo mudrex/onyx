@@ -2,3 +2,5 @@ vendor/
 onyx
 build/
 .DS_Store
+
+dist/
