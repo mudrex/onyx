@@ -33,10 +33,7 @@ changelog:
 
 # .goreleaser.yml
 brews:
-  -
-    name: onyx
-    goarm: 6
-
+  - homepage: 'https://github.com/mudrex/homebrew-onyx'
     # GitHub/GitLab repository to push the formula to
     tap:
       owner: mudrex
