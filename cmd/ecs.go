@@ -12,6 +12,8 @@ import (
 
 var ecsClusterName string
 var ecsServiceName string
+var tagToRevertTo string
+var revisionsToLookback int32
 
 var ecsCommand = &cobra.Command{
 	Use:   "ecs",
@@ -71,8 +73,24 @@ var ecsUpdateContainerInstanceCommand = &cobra.Command{
 	},
 }
 
+var ecsRevertToCommand = &cobra.Command{
+	Use:     "revert",
+	Short:   "",
+	Long:    `Reverts the service to the tag provided. It looks for the given tag in last n revisions of the task definition family and reverts to that state`,
+	Example: "onyx ecs revert --cluster production --service user --tag v0.0.12 --past 10",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		if err != nil {
+			log.Fatalf("unable to load SDK config, %v", err)
+		}
+		ctx := context.Background()
+
+		return ecs.Revert(ctx, cfg, ecsClusterName, ecsServiceName, tagToRevertTo, revisionsToLookback)
+	},
+}
+
 func init() {
-	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand)
+	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand)
 
 	ecsRestartServiceCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsRestartServiceCommand.MarkFlagRequired("cluster")
@@ -80,4 +98,13 @@ func init() {
 
 	ecsDescribeCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsDescribeCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks.")
+	ecsDescribeCommand.MarkFlagRequired("service")
+
+	ecsRevertToCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
+	ecsRevertToCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks.")
+	ecsRevertToCommand.Flags().StringVarP(&tagToRevertTo, "tag", "", "", "Tag to which the service will be reverted")
+	ecsRevertToCommand.MarkFlagRequired("cluster")
+	ecsRevertToCommand.MarkFlagRequired("service")
+	ecsRevertToCommand.MarkFlagRequired("tag")
+	ecsRevertToCommand.Flags().Int32VarP(&revisionsToLookback, "past", "", 5, "Revisions to look back the tag in. Max lookback is 50")
 }

@@ -3,6 +3,7 @@ package ecs
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -69,6 +70,10 @@ func (c *Cluster) GetServices(ctx context.Context, cfg aws.Config, serviceName s
 		requiredServiceArns = allServicesArns
 	}
 
+	if len(requiredServiceArns) == 0 {
+		return nil
+	}
+
 	servicesFromAWS := make([]types.Service, 0)
 	for _, chunk := range utils.GetChunks(requiredServiceArns, 9) {
 		servicesOutput, err := ecsHandler.DescribeServices(ctx, &ecsLib.DescribeServicesInput{
@@ -85,6 +90,7 @@ func (c *Cluster) GetServices(ctx context.Context, cfg aws.Config, serviceName s
 			Arn:               service.ServiceArn,
 			Name:              *service.ServiceName,
 			TaskDefinitionArn: *service.TaskDefinition,
+			ClusterName:       c.Name,
 		})
 	}
 
@@ -114,15 +120,17 @@ func ListClusters(ctx context.Context, cfg aws.Config, nameFilter string) (*[]Cl
 	}
 
 	clusters := make([]Cluster, 0)
+	re := regexp.MustCompile(`arn:aws:ecs:us-east-1:\d+:cluster/(.*)+`)
 	for _, arn := range output.ClusterArns {
+		name := re.ReplaceAllString(arn, "${1}")
 		if nameFilter == "" {
 			clusters = append(clusters, Cluster{
-				Name: arn,
+				Name: name,
 			})
 		} else {
-			if strings.Contains(arn, nameFilter) {
+			if strings.Contains(name, nameFilter) {
 				clusters = append(clusters, Cluster{
-					Name: arn,
+					Name: name,
 				})
 			}
 		}
