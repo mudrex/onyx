@@ -239,3 +239,118 @@ func UpdateContainerAgent(ctx context.Context, cfg aws.Config) error {
 
 	return nil
 }
+
+func Revert(
+	ctx context.Context,
+	cfg aws.Config,
+	cluster,
+	service,
+	tagToRevertTo string,
+	revisionsToLookback int32,
+) error {
+	if revisionsToLookback > 50 {
+		return errors.New("please limit your lookback to 50")
+	}
+
+	clusters, err := ListClusters(ctx, cfg, cluster)
+	if err != nil {
+		return err
+	}
+
+	for i, cluster := range *clusters {
+		err = cluster.GetServices(ctx, cfg, service)
+		if err != nil {
+			return err
+		}
+
+		for j, service := range cluster.Services {
+			service.GetTaskDefintions(ctx, cfg, revisionsToLookback)
+
+			for _, taskDefinition := range service.TaskDefinitions {
+				if strings.Contains(taskDefinition.Image, tagToRevertTo) {
+					service.TaskDefinitionArn = taskDefinition.GetNameWithVersion()
+					service.CanRevert = true
+					break
+				}
+			}
+
+			cluster.Services[j] = service
+		}
+
+		(*clusters)[i] = cluster
+	}
+
+	revertServices(ctx, cfg, clusters, tagToRevertTo, revisionsToLookback, true)
+
+	shouldDo := logger.InfoScan("Choose y/n: ")
+	if shouldDo != "y" {
+		logger.Success("Nothing to do")
+		return nil
+	}
+
+	revertServices(ctx, cfg, clusters, tagToRevertTo, revisionsToLookback, false)
+
+	return nil
+}
+
+func revertServices(
+	ctx context.Context,
+	cfg aws.Config,
+	clusters *[]Cluster,
+	tagToRevertTo string,
+	revisionsToLookback int32,
+	dryRun bool,
+) {
+	ecsHandler := ecsLib.NewFromConfig(cfg)
+	for _, cluster := range *clusters {
+		for _, service := range cluster.Services {
+			if !service.CanRevert {
+				logger.Warn(
+					"Tag %s not found in past %s revisions, wont revert %s/%s",
+					logger.Bold(tagToRevertTo),
+					logger.Underline(revisionsToLookback),
+					logger.Italic(cluster.Name),
+					logger.Italic(service.Name),
+				)
+				continue
+			}
+
+			if dryRun {
+				logger.Info(
+					"Will update %s/%s from %s -> %s",
+					logger.Underline(cluster.Name),
+					logger.Underline(service.Name),
+					logger.Italic(service.OldTaskDefinitionArn),
+					logger.Bold(service.TaskDefinitionArn),
+				)
+				continue
+			}
+
+			_, err := ecsHandler.UpdateService(ctx, &ecsLib.UpdateServiceInput{
+				Cluster:            aws.String(cluster.Name),
+				Service:            aws.String(service.Name),
+				TaskDefinition:     aws.String(service.TaskDefinitionArn),
+				ForceNewDeployment: true,
+			})
+			if err != nil {
+				logger.Error(
+					"Unable to update %s/%s from %s -> %s. Error: %s",
+					logger.Underline(cluster.Name),
+					logger.Underline(service.Name),
+					logger.Italic(service.OldTaskDefinitionArn),
+					logger.Bold(service.TaskDefinitionArn),
+					err.Error(),
+				)
+				continue
+			}
+
+			logger.Success(
+				"Updated %s/%s from %s -> %s",
+				logger.Underline(cluster.Name),
+				logger.Underline(service.Name),
+				logger.Italic(service.OldTaskDefinitionArn),
+				logger.Bold(service.TaskDefinitionArn),
+			)
+		}
+	}
+}

@@ -2,6 +2,7 @@ package ecs
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecsLib "github.com/aws/aws-sdk-go-v2/service/ecs"
@@ -12,6 +13,17 @@ type Task struct {
 	TaskDefinitionArn string
 	ContainerInstance *ContainerInstance
 	Service           *Service
+}
+
+type TaskDefinition struct {
+	Arn     *string
+	Name    string
+	Version int32
+	Image   string
+}
+
+func (td *TaskDefinition) GetNameWithVersion() string {
+	return fmt.Sprintf("%s:%d", td.Name, td.Version)
 }
 
 func DescribeTasks(ctx context.Context, cfg aws.Config, clusterName string, services *[]Service) *map[string]Task {
