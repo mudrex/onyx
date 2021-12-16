@@ -144,6 +144,10 @@ func (sgRule *SecurityGroupRule) enrichRuleDescription() string {
 	return fmt.Sprintf("[Onyx approved] User: %s", sgRule.user)
 }
 
+func (sgRule *SecurityGroupRule) GetUserName() string {
+	return strings.Replace(sgRule.description, "[Onyx approved] User: ", "", -1)
+}
+
 func (sgRule *SecurityGroupRule) attachNewIP(ip string) {
 	sgRule.cidr = ip
 }
@@ -160,6 +164,13 @@ func (sg *SecurityGroup) FilterIngressRules(securityGroupRules *[]SecurityGroupR
 }
 
 func (sg *SecurityGroup) Authorize(ctx context.Context, cfg aws.Config, rules *[]SecurityGroupRule, publicIP string) {
+	for _, existingRule := range sg.rules {
+		if existingRule.cidr == publicIP {
+			logger.Success("CIDR is already whitelisted by %s", logger.Bold(existingRule.GetUserName()))
+			return
+		}
+	}
+
 	logger.Info("Authorizing new rules for %s", logger.Bold(sg.ID))
 	ec2Handler := ec2Lib.NewFromConfig(cfg)
 
