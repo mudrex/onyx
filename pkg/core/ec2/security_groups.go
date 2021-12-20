@@ -74,6 +74,21 @@ func ExtractFilter(filterStr string) *Filter {
 	return &Filter{}
 }
 
+func (sg *SecurityGroup) Refresh(ctx context.Context, cfg aws.Config) {
+	ec2Handler := ec2Lib.NewFromConfig(cfg)
+	output, err := ec2Handler.DescribeSecurityGroups(ctx, &ec2Lib.DescribeSecurityGroupsInput{
+		GroupIds: []string{sg.ID},
+	})
+	if err != nil {
+		logger.Error("Unable to refresh security group")
+		return
+	}
+
+	securityGroups := convertSecurityGroups(&output.SecurityGroups)
+
+	sg.rules = securityGroups[0].rules
+}
+
 func NewSecurityGroup(ctx context.Context, cfg aws.Config, id string) (*SecurityGroup, error) {
 	securityGroup := SecurityGroup{
 		ID:    id,
@@ -261,7 +276,7 @@ func (sg *SecurityGroup) Revoke(ctx context.Context, cfg aws.Config, rules []Sec
 	}
 
 	// Force refresh
-	sg, _ = NewSecurityGroup(ctx, cfg, sg.ID)
+	sg.Refresh(ctx, cfg)
 
 	if output.Return {
 		logger.Success("Revoked old rules for %s", logger.Bold(sg.ID))
@@ -596,6 +611,8 @@ func AuthorizeOrRevokeRule(
 				continue
 			}
 		}
+
+		sgAlter.SecurityGroup.Refresh(ctx, cfg)
 
 		if authorize {
 			sgAlter.SecurityGroup.Authorize(ctx, cfg, &sgRules, publicIP)
