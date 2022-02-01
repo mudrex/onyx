@@ -452,16 +452,14 @@ func convertSecurityGroups(libSecurityGroups *[]types.SecurityGroup) (securityGr
 		}
 
 		allowedRulesForSecurityGroup := make(map[string]bool)
-		isBlocked := false
+		isBlocked := true
 		for _, tag := range securityGroup.Tags {
 			if aws.ToString(tag.Key) == "onyx:rules" {
 				for _, rt := range strings.Split(aws.ToString(tag.Value), ",") {
 					allowedRulesForSecurityGroup[rt] = true
+					isBlocked = false
+					break
 				}
-			}
-
-			if aws.ToString(tag.Key) == "onyx:blocked" {
-				isBlocked = true
 			}
 		}
 
