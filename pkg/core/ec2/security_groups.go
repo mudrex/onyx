@@ -89,6 +89,33 @@ func (sg *SecurityGroup) Refresh(ctx context.Context, cfg aws.Config) {
 	sg.rules = securityGroups[0].rules
 }
 
+func NewSecurityGroupByName(ctx context.Context, cfg aws.Config, name string) (*SecurityGroup, error) {
+	securityGroup := SecurityGroup{
+		rules: make([]SecurityGroupRule, 0),
+	}
+
+	ec2Handler := ec2Lib.NewFromConfig(cfg)
+	output, err := ec2Handler.DescribeSecurityGroups(ctx, &ec2Lib.DescribeSecurityGroupsInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("tag:Name"),
+				Values: []string{name},
+			},
+		},
+	})
+	if err != nil {
+		return &securityGroup, err
+	}
+
+	if len(output.SecurityGroups) == 1 {
+		securityGroup.ID = aws.ToString((output.SecurityGroups[0].GroupId))
+		securityGroup.Name = aws.ToString((output.SecurityGroups[0].GroupName))
+		securityGroup.Description = aws.ToString((output.SecurityGroups[0].Description))
+	}
+
+	return &securityGroup, nil
+}
+
 func NewSecurityGroup(ctx context.Context, cfg aws.Config, id string) (*SecurityGroup, error) {
 	securityGroup := SecurityGroup{
 		ID:    id,
@@ -573,12 +600,32 @@ func AuthorizeOrRevokeRule(
 			}
 		}
 	} else {
-		selectedSecurityGroups, err := SelectSecurityGroups(ctx, cfg, strings.Title(strings.ToLower(envOrID)), &filtersToApply, skipChoice, portsToUpdate)
+		securityGroup, err := NewSecurityGroupByName(ctx, cfg, envOrID)
 		if err != nil {
-			return err
+			return errors.New("Invalid security group name. Error: " + err.Error())
 		}
 
-		securityGroups = selectedSecurityGroups
+		if securityGroup.ID != "" {
+			logger.Success("Detected security group: %s (%s)", logger.Bold(securityGroup.ID), logger.Italic(securityGroup.Name))
+
+			securityGroups[securityGroup.ID] = SecurityGroupToAlter{
+				SecurityGroup: *securityGroup,
+				Ports:         make(map[int32]bool),
+			}
+
+			for _, port := range portsToUpdate {
+				if _, ok := securityGroups[securityGroup.ID].Ports[port]; !ok {
+					securityGroups[securityGroup.ID].Ports[port] = true
+				}
+			}
+		} else {
+			selectedSecurityGroups, err := SelectSecurityGroups(ctx, cfg, strings.Title(strings.ToLower(envOrID)), &filtersToApply, skipChoice, portsToUpdate)
+			if err != nil {
+				return err
+			}
+
+			securityGroups = selectedSecurityGroups
+		}
 	}
 
 	if len(securityGroups) == 0 {
