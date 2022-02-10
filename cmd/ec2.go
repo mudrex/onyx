@@ -136,7 +136,7 @@ var ec2sgAuthorizeCommand = &cobra.Command{
 }
 
 var ec2sgRevokeCommand = &cobra.Command{
-	Use:     "revoke [environment | security-group-id] {[--types types] | [--ports ports]}",
+	Use:     "revoke [environment | security-group-id | security-group-name] {[--types types] | [--ports ports]}",
 	Short:   "Revokes the security group rules",
 	Long:    `Given a pair of types or ports or both, it revokes old rules.`,
 	Args:    cobra.MinimumNArgs(1),
