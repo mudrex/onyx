@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -142,6 +143,9 @@ func CheckExpiredAccessKeys() error {
 		return err
 	}
 
+	olderAccessKeys := make([]string, 0)
+	dormantAccessKeys := make([]string, 0)
+
 	for _, user := range allUsers.Users {
 		accessKeys, err := iamHandler.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 			UserName: user.UserName,
@@ -159,13 +163,21 @@ func CheckExpiredAccessKeys() error {
 			}
 
 			if aws.ToTime(accessKey.CreateDate).Unix() < time.Now().AddDate(0, -3, 0).Unix() {
-				fmt.Println("older access key", aws.ToString(user.UserName), time.Now().AddDate(0, -3, 0).Unix()-aws.ToTime(accessKey.CreateDate).Unix())
+				olderAccessKeys = append(olderAccessKeys, aws.ToString(user.UserName))
 			}
 
 			if aws.ToTime(lastUsed.AccessKeyLastUsed.LastUsedDate).Unix() < time.Now().AddDate(0, -1, 0).Unix() {
-				fmt.Println("dormant access key", aws.ToString(user.UserName), time.Now().AddDate(0, -1, 0).Unix()-aws.ToTime(lastUsed.AccessKeyLastUsed.LastUsedDate).Unix())
+				dormantAccessKeys = append(dormantAccessKeys, aws.ToString(user.UserName))
 			}
 		}
+	}
+
+	if len(olderAccessKeys) > 0 {
+		fmt.Println("Older access keys:", strings.Join(olderAccessKeys, ", "))
+	}
+
+	if len(dormantAccessKeys) > 0 {
+		fmt.Println("Dormant access keys:", strings.Join(dormantAccessKeys, ", "))
 	}
 
 	return nil
