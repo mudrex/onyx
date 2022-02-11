@@ -404,7 +404,6 @@ func SelectSecurityGroups(
 	} else {
 		for _, index := range strings.Split(choices, ",") {
 			i, _ := strconv.ParseInt(strings.TrimSpace(index), 0, 32)
-			fmt.Println(i)
 			if i >= 0 && i < int64(len(*securityGroups)) {
 				securityGroupToAlter := SecurityGroupToAlter{
 					SecurityGroup: (*securityGroups)[i],

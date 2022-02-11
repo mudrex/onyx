@@ -19,20 +19,23 @@ type ContainerInstance struct {
 	Instance ec2.Instance
 }
 
-func Describe(ctx context.Context, cfg aws.Config, serviceName, nameFilter string) error {
-	clusters, err := ListClusters(ctx, cfg, nameFilter)
+func Describe(ctx context.Context, cfg aws.Config, serviceName, clusterName string) error {
+	clusters, err := ListClusters(ctx, cfg, clusterName)
 	if err != nil {
 		return err
 	}
 
 	for _, cluster := range *clusters {
-		DescribeByCluster(ctx, cfg, cluster.Name, serviceName)
+		c, err := DescribeByCluster(ctx, cfg, cluster.Name, serviceName)
+		if err == nil {
+			c.Print()
+		}
 	}
 
 	return nil
 }
 
-func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, serviceName string) error {
+func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, serviceName string) (*Cluster, error) {
 	if serviceName == "" {
 		logger.Warn("Service name is not provided. This results in large query, please consider narrowing your search.")
 	}
@@ -45,7 +48,7 @@ func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, service
 	// Fetch all services of the cluster
 	err := cluster.GetServices(ctx, cfg, serviceName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Fetch tasks details of the required services
@@ -73,7 +76,7 @@ func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, service
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	instanceIDsMap := make(map[string]ec2.Instance)
@@ -95,7 +98,7 @@ func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, service
 
 	instancesDetails, err := ec2.DescribeInstances(ctx, cfg, instanceIDs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, instancesDetail := range *instancesDetails {
@@ -130,22 +133,8 @@ func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, service
 	}
 
 	cluster.Services = *allServices
-	cluster.Print()
 
-	// fmt.Println("Cluster name:", cluster.Name)
-	// // fmt.Println("Registered container instances:", cluster.ContainerInstances)
-
-	// for _, service := range cluster.Services {
-	// 	fmt.Println("Service Name:", service.Name)
-	// 	// fmt.Println("  Task Definition:", service.TaskDefinitionArn)
-	// 	fmt.Println("  Tasks:")
-	// 	for _, task := range service.Tasks {
-	// 		// fmt.Println("    Arn:", *task.Arn)
-	// 		fmt.Println("    IP:", task.ContainerInstance.Instance.PrivateIPv4)
-	// 	}
-	// }
-
-	return nil
+	return &cluster, nil
 }
 
 func RedeployService(ctx context.Context, cfg aws.Config, clusterName, serviceName string) error {
