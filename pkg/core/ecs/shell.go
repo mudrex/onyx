@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/mudrex/onyx/pkg/auth"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
 )
@@ -80,6 +81,16 @@ func getServicesHosts(ctx context.Context, cfg aws.Config, serviceName, clusterN
 }
 
 func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, clusterName string) error {
+	username, isAuthorized, err := auth.CheckUserAccessForService(ctx, serviceName)
+	if err != nil {
+		return err
+	}
+
+	if !isAuthorized {
+		logger.Error("%s is not authorized to access %s", logger.Underline(username), logger.Bold(serviceName))
+		return nil
+	}
+
 	servicesHosts, err := getServicesHosts(ctx, cfg, serviceName, clusterName)
 	if err != nil {
 		return err
@@ -163,6 +174,16 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 }
 
 func TailContainerLogs(ctx context.Context, cfg aws.Config, serviceName, clusterName string, tailLogs int32) error {
+	username, isAuthorized, err := auth.CheckUserAccessForService(ctx, serviceName)
+	if err != nil {
+		return err
+	}
+
+	if !isAuthorized {
+		logger.Error("%s is not authorized to access %s", logger.Underline(username), logger.Bold(serviceName))
+		return nil
+	}
+
 	servicesHosts, err := getServicesHosts(ctx, cfg, serviceName, clusterName)
 	if err != nil {
 		return err
