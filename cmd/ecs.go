@@ -14,6 +14,7 @@ var ecsClusterName string
 var ecsServiceName string
 var tagToRevertTo string
 var revisionsToLookback int32
+var tailLogs int32
 
 var ecsCommand = &cobra.Command{
 	Use:   "ecs",
@@ -38,6 +39,56 @@ var ecsDescribeCommand = &cobra.Command{
 		}
 
 		return ecs.Describe(ctx, cfg, ecsServiceName, ecsClusterName)
+	},
+}
+
+var ecsSpawnShellCommand = &cobra.Command{
+	Use:     "spawn-shell --cluster <cluster-name> --service <service-name>",
+	Short:   "SpawnShells the given service.",
+	Long:    `For the given cluster and service name pair, onyx spawns the docker shell bypassing the host instance's shell`,
+	Args:    cobra.NoArgs,
+	Example: "onyx ecs spawn-shell --cluster staging-api-cluster --service some-service",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		if err != nil {
+			log.Fatalf("unable to load SDK config, %v", err)
+		}
+		ctx := context.Background()
+
+		if ecsClusterName == "" {
+			return errors.New("empty cluster name")
+		}
+
+		if ecsServiceName == "" {
+			return errors.New("empty service name")
+		}
+
+		return ecs.SpawnServiceShell(ctx, cfg, ecsServiceName, ecsClusterName)
+	},
+}
+
+var ecsTailLogsCommand = &cobra.Command{
+	Use:     "tail-logs --cluster <cluster-name> --service <service-name> [--tail n]",
+	Short:   "Tail logs for a service container",
+	Long:    `For the given cluster and service name pair, onyx tails the docker instance`,
+	Args:    cobra.NoArgs,
+	Example: "onyx ecs tail-logs --cluster staging-api-cluster --service some-service --tail 100",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		if err != nil {
+			log.Fatalf("unable to load SDK config, %v", err)
+		}
+		ctx := context.Background()
+
+		if ecsClusterName == "" {
+			return errors.New("empty cluster name")
+		}
+
+		if ecsServiceName == "" {
+			return errors.New("empty service name")
+		}
+
+		return ecs.TailContainerLogs(ctx, cfg, ecsServiceName, ecsClusterName, tailLogs)
 	},
 }
 
@@ -90,15 +141,27 @@ var ecsRevertToCommand = &cobra.Command{
 }
 
 func init() {
-	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand)
+	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand, ecsSpawnShellCommand, ecsTailLogsCommand)
 
 	ecsRestartServiceCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsRestartServiceCommand.MarkFlagRequired("cluster")
 	ecsRestartServiceCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Service Name")
 
 	ecsDescribeCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
-	ecsDescribeCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks.")
+	ecsDescribeCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks. (required)")
 	ecsDescribeCommand.MarkFlagRequired("service")
+	ecsDescribeCommand.MarkFlagRequired("cluster")
+
+	ecsSpawnShellCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
+	ecsSpawnShellCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks. (required)")
+	ecsSpawnShellCommand.MarkFlagRequired("service")
+	ecsSpawnShellCommand.MarkFlagRequired("cluster")
+
+	ecsTailLogsCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
+	ecsTailLogsCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks. (required)")
+	ecsTailLogsCommand.Flags().Int32VarP(&tailLogs, "tail", "t", 10, "")
+	ecsTailLogsCommand.MarkFlagRequired("service")
+	ecsTailLogsCommand.MarkFlagRequired("cluster")
 
 	ecsRevertToCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsRevertToCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks.")
