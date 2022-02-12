@@ -519,13 +519,21 @@ func applyFilters(securityGroups *[]SecurityGroup, filters *[]Filter) *[]Securit
 				}
 			}
 		}
+
+		if filter.Key == "type" {
+			for _, securityGroup := range *securityGroups {
+				if _, ok := securityGroup.allowedRules[filter.Value]; ok {
+					filteredSecurityGroups = append(filteredSecurityGroups, securityGroup)
+				}
+			}
+		}
 	}
 
 	return &filteredSecurityGroups
 }
 
 func AuthorizeOrRevokeRule(
-	envOrID string,
+	envOrIDOrName string,
 	types []string,
 	ports []int32,
 	filters []string,
@@ -540,6 +548,13 @@ func AuthorizeOrRevokeRule(
 				filtersToApply = append(filtersToApply, *filterObj)
 			}
 		}
+	}
+
+	for _, t := range types {
+		filtersToApply = append(filtersToApply, Filter{
+			Key:   "type",
+			Value: t,
+		})
 	}
 
 	portsToUpdate := make([]int32, 0)
@@ -580,8 +595,8 @@ func AuthorizeOrRevokeRule(
 	ctx := context.Background()
 
 	securityGroups := make(map[string]SecurityGroupToAlter)
-	if strings.HasPrefix(envOrID, "sg-") {
-		securityGroup, err := NewSecurityGroup(ctx, cfg, envOrID)
+	if strings.HasPrefix(envOrIDOrName, "sg-") {
+		securityGroup, err := NewSecurityGroup(ctx, cfg, envOrIDOrName)
 		if err != nil {
 			return errors.New("Invalid security group id. Error: " + err.Error())
 		}
@@ -599,7 +614,7 @@ func AuthorizeOrRevokeRule(
 			}
 		}
 	} else {
-		securityGroup, err := NewSecurityGroupByName(ctx, cfg, envOrID)
+		securityGroup, err := NewSecurityGroupByName(ctx, cfg, envOrIDOrName)
 		if err != nil {
 			return errors.New("Invalid security group name. Error: " + err.Error())
 		}
@@ -618,7 +633,14 @@ func AuthorizeOrRevokeRule(
 				}
 			}
 		} else {
-			selectedSecurityGroups, err := SelectSecurityGroups(ctx, cfg, strings.Title(strings.ToLower(envOrID)), &filtersToApply, skipChoice, portsToUpdate)
+			selectedSecurityGroups, err := SelectSecurityGroups(
+				ctx,
+				cfg,
+				strings.Title(strings.ToLower(envOrIDOrName)),
+				&filtersToApply,
+				skipChoice,
+				portsToUpdate,
+			)
 			if err != nil {
 				return err
 			}
