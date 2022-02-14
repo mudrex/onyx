@@ -11,11 +11,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
 )
 
 func Whoami() (string, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
@@ -43,7 +44,7 @@ func RandStringRunes(n int) string {
 }
 
 func CreateUser(userName, path string) error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
@@ -89,7 +90,7 @@ func CreateUser(userName, path string) error {
 }
 
 func DeleteUser(userName string) error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
@@ -129,7 +130,7 @@ func DeleteUser(userName string) error {
 }
 
 func CheckExpiredAccessKeys() error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecsLib "github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
@@ -120,7 +121,7 @@ func ListClusters(ctx context.Context, cfg aws.Config, nameFilter string) (*[]Cl
 	}
 
 	clusters := make([]Cluster, 0)
-	re := regexp.MustCompile(`arn:aws:ecs:us-east-1:\d+:cluster/(.*)+`)
+	re := regexp.MustCompile(`arn:aws:ecs:` + configPkg.GetRegion() + `:\d+:cluster/(.*)+`)
 	for _, arn := range output.ClusterArns {
 		name := re.ReplaceAllString(arn, "${1}")
 		if nameFilter == "" {

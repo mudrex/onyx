@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/ec2"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/spf13/cobra"
@@ -37,12 +38,15 @@ var ec2InstanceCommand = &cobra.Command{
 }
 
 var ec2sgDescribeCommand = &cobra.Command{
-	Use:     "describe {--env environment | --id sg-id}",
-	Short:   "Describes security group based on id or filtered by environment. Supports only one group at a time.",
-	Args:    cobra.NoArgs,
+	Use:   "describe {--env environment | --id sg-id}",
+	Short: "Describes security group based on id or filtered by environment. Supports only one group at a time.",
+	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 sg describe --env staging\nonyx ec2 sg describe --id sg-12VJGkhd28iv11",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}
@@ -79,12 +83,15 @@ var ec2sgDescribeCommand = &cobra.Command{
 }
 
 var ec2sgListCommand = &cobra.Command{
-	Use:     "list [--env <environment>]",
-	Short:   "Lists all security groups",
-	Args:    cobra.NoArgs,
+	Use:   "list [--env <environment>]",
+	Short: "Lists all security groups",
+	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 sg list\nonyx ec2 sg list --env staging",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}
@@ -109,10 +116,13 @@ var ec2sgListCommand = &cobra.Command{
 }
 
 var ec2sgAuthorizeCommand = &cobra.Command{
-	Use:     "authorize [environment | security-group-id] {[--types types] | [--ports ports] | [--filter <key>=<value>] | [--skip-choice]}",
-	Short:   "Authorizes security group rules",
-	Long:    `Given a pair of types or ports or both, it revokes old rules and authorizes new ingress rules with your public IP.`,
-	Args:    cobra.MinimumNArgs(1),
+	Use:   "authorize [environment | security-group-id] {[--types types] | [--ports ports] | [--filter <key>=<value>] | [--skip-choice]}",
+	Short: "Authorizes security group rules",
+	Long:  `Given a pair of types or ports or both, it revokes old rules and authorizes new ingress rules with your public IP.`,
+	Args:  cobra.MinimumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 sg authorize production -t ssh\nonyx ec2 sg authorize staging -t ssh,mongo,redis\nonyx ec2 sg authorize sg-ajvjTUf581ig1 -t ssh,mongo,redis",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var ports []int32
@@ -136,10 +146,13 @@ var ec2sgAuthorizeCommand = &cobra.Command{
 }
 
 var ec2sgRevokeCommand = &cobra.Command{
-	Use:     "revoke [environment | security-group-id | security-group-name] {[--types types] | [--ports ports]}",
-	Short:   "Revokes the security group rules",
-	Long:    `Given a pair of types or ports or both, it revokes old rules.`,
-	Args:    cobra.MinimumNArgs(1),
+	Use:   "revoke [environment | security-group-id | security-group-name] {[--types types] | [--ports ports]}",
+	Short: "Revokes the security group rules",
+	Long:  `Given a pair of types or ports or both, it revokes old rules.`,
+	Args:  cobra.MinimumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 sg revoke staging -t redis",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var ports []int32
@@ -163,12 +176,15 @@ var ec2sgRevokeCommand = &cobra.Command{
 }
 
 var ec2StopInstanceCommand = &cobra.Command{
-	Use:     "stop <instance-id>",
-	Short:   "Stops the given instance",
-	Args:    cobra.MinimumNArgs(1),
+	Use:   "stop <instance-id>",
+	Short: "Stops the given instance",
+	Args:  cobra.MinimumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 stop i-0asd68a8120u",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}
@@ -180,12 +196,15 @@ var ec2StopInstanceCommand = &cobra.Command{
 }
 
 var ec2StartInstanceCommand = &cobra.Command{
-	Use:     "start <instance-id>",
-	Short:   "Starts the given instance",
-	Args:    cobra.MinimumNArgs(1),
+	Use:   "start <instance-id>",
+	Short: "Starts the given instance",
+	Args:  cobra.MinimumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	Example: "onyx ec2 start i-0asd68a8120u",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}

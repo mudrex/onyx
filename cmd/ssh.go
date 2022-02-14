@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/ssh"
 	"github.com/spf13/cobra"
 )
@@ -17,6 +18,9 @@ var sshDoCommand = &cobra.Command{
 	Short:   "Spawns up the remote machine shell",
 	Example: "onyx ssh do ec2-user@11.11.11.11",
 	Args:    cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		return ssh.Do(ctx, args[0])
