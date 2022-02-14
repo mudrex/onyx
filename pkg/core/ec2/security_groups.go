@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	ec2Lib "github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/iam"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -588,7 +589,7 @@ func AuthorizeOrRevokeRule(
 		return errors.New("invalid user")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}

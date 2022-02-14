@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/waf"
 	"github.com/spf13/cobra"
 )
@@ -22,8 +23,11 @@ var wafUpdateIpSetCommand = &cobra.Command{
 	Short:   "",
 	Args:    cobra.MaximumNArgs(1),
 	Example: "onyx cw disable SomRule",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}

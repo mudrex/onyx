@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/sandstorm"
 	"github.com/spf13/cobra"
 )
@@ -15,9 +16,12 @@ var sandstormCommand = &cobra.Command{
 	Short:   "Starts or stops entire ecs infra",
 	Args:    cobra.MinimumNArgs(1),
 	Example: "onyx sandstorm init\nonyx sandstorm revert",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return errors.New("Disabled")
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
 		}

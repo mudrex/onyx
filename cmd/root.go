@@ -13,7 +13,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(ecsCommand, ec2Command, iamCommand, cloudwatchCommand, sandstormCommand, wafCommand, sshCommand)
+	rootCmd.AddCommand(ecsCommand, ec2Command, iamCommand, cloudwatchCommand, sandstormCommand, wafCommand, sshCommand, intiCommand)
 }
 
 func Execute() {

@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ecsLib "github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
+	configPkg "github.com/mudrex/onyx/pkg/config"
 )
 
 type Service struct {
@@ -23,10 +24,10 @@ type Service struct {
 func (s *Service) GetTaskDefintions(ctx context.Context, cfg aws.Config, revisionsToLookback int32) {
 	ecsHandler := ecsLib.NewFromConfig(cfg)
 
-	re := regexp.MustCompile(`arn:aws:ecs:us-east-1:\d+:task-definition/(.*)+`)
+	re := regexp.MustCompile(`arn:aws:ecs:` + configPkg.GetRegion() + `:\d+:task-definition/(.*)+`)
 	s.OldTaskDefinitionArn = re.ReplaceAllString(s.TaskDefinitionArn, "${1}")
 
-	m := regexp.MustCompile(`arn:aws:ecs:us-east-1:\d+:task-definition/(.*)+:\d+`)
+	m := regexp.MustCompile(`arn:aws:ecs:` + configPkg.GetRegion() + `:\d+:task-definition/(.*)+:\d+`)
 	tdName := m.ReplaceAllString(s.TaskDefinitionArn, "${1}")
 
 	o1, err := ecsHandler.ListTaskDefinitions(ctx, &ecsLib.ListTaskDefinitionsInput{
