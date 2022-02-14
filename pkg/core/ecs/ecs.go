@@ -36,10 +36,6 @@ func Describe(ctx context.Context, cfg aws.Config, serviceName, clusterName stri
 }
 
 func DescribeByCluster(ctx context.Context, cfg aws.Config, clusterName, serviceName string) (*Cluster, error) {
-	if serviceName == "" {
-		logger.Warn("Service name is not provided. This results in large query, please consider narrowing your search.")
-	}
-
 	cluster := Cluster{
 		Name: clusterName,
 	}
