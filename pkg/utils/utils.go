@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/user"
 	"regexp"
 	"strings"
 
@@ -74,4 +75,13 @@ func GetUserInput(message string) string {
 	fmt.Print(message)
 	input, _ := consoleReader.ReadString('\n')
 	return input
+}
+
+func GetUser() string {
+	currUser, err := user.Current()
+	if err != nil {
+		return ""
+	}
+
+	return currUser.Username
 }

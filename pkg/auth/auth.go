@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/user"
 	"strings"
+
+	"github.com/mudrex/onyx/pkg/utils"
 )
 
 var accessList = make(map[string][]string)
@@ -39,40 +41,37 @@ func CheckUserAccessForService(ctx context.Context, serviceName string) (string,
 }
 
 func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool, error) {
-	currUser, err := user.Current()
-	if err != nil {
-		return "", false, err
-	}
+	username := utils.GetUser()
 
 	file, _ := os.Open("/opt/gatekeeper/hosts-access.json")
 	defer file.Close()
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&hostAccessList)
+	err := decoder.Decode(&hostAccessList)
 	if err != nil {
 		panic(err)
 	}
 
 	// if host is not listed in config, allow access to everyone
 	if _, ok := hostAccessList[host]; !ok {
-		return currUser.Username, true, nil
+		return username, true, nil
 	}
 
 	if allAccess, ok := hostAccessList[host]["all"]; ok {
 		// if this host has access for "all" enabled, allow for everyone
 		if allAccess {
-			return currUser.Username, true, nil
+			return username, true, nil
 		}
 
-		if access, ok := hostAccessList[host][currUser.Username]; ok {
-			return currUser.Username, access, nil
+		if access, ok := hostAccessList[host][username]; ok {
+			return username, access, nil
 		}
 
-		return currUser.Username, false, nil
+		return username, false, nil
 	}
 
-	if access, ok := hostAccessList[host][currUser.Username]; ok {
-		return currUser.Username, access, nil
+	if access, ok := hostAccessList[host][username]; ok {
+		return username, access, nil
 	}
 
-	return currUser.Username, true, nil
+	return username, true, nil
 }

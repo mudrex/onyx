@@ -12,7 +12,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/mudrex/onyx/pkg/auth"
+	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/notifier"
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
@@ -34,6 +36,11 @@ func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName stri
 	containerID := strings.Trim(string(out), "\n")
 
 	logger.Info("Spawning shell for %s on instance %s", logger.Underline(serviceName), host)
+
+	notifier.Notify(
+		config.Config.SlackHook,
+		fmt.Sprintf("[ecs/spawn-shell] *%s* logged in to _%s_ for %s", utils.GetUser(), host, serviceName),
+	)
 
 	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i /opt/gatekeeper/keys/services.pem ec2-user@%s 'docker exec -it %s bash'", host, containerID)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
@@ -159,6 +166,11 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 	containerID := strings.Trim(string(out), "\n")
 
 	logger.Info("Spawning shell for %s on instance %s", logger.Underline(serviceName), host)
+
+	notifier.Notify(
+		config.Config.SlackHook,
+		fmt.Sprintf("[ecs/tail-logs] *%s* tailed logs for %s on _%s_", utils.GetUser(), serviceName, host),
+	)
 
 	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i /opt/gatekeeper/keys/services.pem ec2-user@%s 'docker logs -f %s --tail %d'", host, containerID, tailLogs)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)

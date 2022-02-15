@@ -14,7 +14,7 @@ func change(ctx context.Context) error {
 
 func Init(ctx context.Context, force bool) error {
 	if !utils.FileExists(config.Filename) {
-		err := utils.CreateFileWithData(config.Filename, config.Default())
+		err := utils.CreateFileWithData(config.Filename, config.Config.ToString())
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func Init(ctx context.Context, force bool) error {
 	if force {
 		logger.Info("Overwriting %s file.", logger.Underline(config.Filename))
 
-		err := utils.CreateFileWithData(config.Filename, config.Default())
+		err := utils.CreateFileWithData(config.Filename, config.Config.ToString())
 		if err != nil {
 			return err
 		}
