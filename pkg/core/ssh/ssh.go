@@ -9,7 +9,9 @@ import (
 	"syscall"
 
 	"github.com/mudrex/onyx/pkg/auth"
+	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/notifier"
 )
 
 var accessList = map[string]map[string]int{}
@@ -35,6 +37,11 @@ func Do(ctx context.Context, userHost string) error {
 	}
 
 	logger.Info("Spawning shell for %s", logger.Underline(userHost))
+
+	notifier.Notify(
+		config.Config.SlackHook,
+		fmt.Sprintf("[ssh/do] *%s* logged in to _%s_", username, userHost),
+	)
 
 	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i /opt/gatekeeper/keys/services.pem %s", userHost)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)

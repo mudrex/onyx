@@ -2,17 +2,32 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
-var Config map[string]string
+type C struct {
+	Region    string `json:"region"`
+	SlackHook string `json:"slack_hook"`
+}
+
+var Config C
 
 var Filename = ".onyx.json"
 
-func Default() string {
-	return `{"region": "us-east-1"}`
+func Default() C {
+	return C{
+		Region: "us-east-1",
+	}
+}
+
+func (c *C) ToString() string {
+	dataByte, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+
+	return string(dataByte)
 }
 
 func LoadConfig() error {
@@ -22,14 +37,13 @@ func LoadConfig() error {
 	}
 
 	json.Unmarshal([]byte(data), &Config)
-	fmt.Println(Config)
 	return nil
 }
 
 func GetRegion() string {
-	if region, ok := Config["region"]; ok {
-		return region
+	if Config.Region == "" {
+		return "us-east-1"
 	}
 
-	return "us-east-1"
+	return Config.Region
 }
