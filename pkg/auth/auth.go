@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
@@ -51,9 +52,9 @@ func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool
 		panic(err)
 	}
 
-	// if host is not listed in config, allow access to everyone
 	if _, ok := hostAccessList[host]; !ok {
-		return username, true, nil
+		logger.Warn("%s doesn't exist in allowed list. Please get it added.", host)
+		return username, false, nil
 	}
 
 	if allAccess, ok := hostAccessList[host]["all"]; ok {
@@ -73,5 +74,5 @@ func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool
 		return username, access, nil
 	}
 
-	return username, true, nil
+	return username, false, nil
 }
