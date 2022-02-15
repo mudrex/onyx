@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 
+	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
@@ -31,6 +32,10 @@ func (c *C) ToString() string {
 }
 
 func LoadConfig() error {
+	if !utils.FileExists(Filename) {
+		logger.Fatal("%s doesn't exist. Please create one with %s", logger.Bold(Filename), logger.Underline("onyx init"))
+	}
+
 	data, err := utils.ReadFile(Filename)
 	if err != nil {
 		return err
