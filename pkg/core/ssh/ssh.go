@@ -67,10 +67,7 @@ func Do(ctx context.Context, userHost string) error {
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout
 	out1.Stderr = os.Stderr
-	err = out1.Run()
-	if err != nil {
-		logger.Error("Unable to execute command over ssh %s", err.Error())
-	}
+	out1.Run()
 
 	syscall.Setuid(userUID)
 	logger.Success("Exiting safely")
