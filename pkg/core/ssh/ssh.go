@@ -55,7 +55,7 @@ func Do(ctx context.Context, userHost string) error {
 		fmt.Sprintf("[ssh/do] *%s* logged in to _%s_", username, userHost),
 	)
 
-	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i /opt/gatekeeper/keys/services.pem %s", userHost)
+	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s %s", config.Config.PrivateKey, userHost)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout

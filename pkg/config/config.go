@@ -9,9 +9,12 @@ import (
 )
 
 type C struct {
-	Region    string `json:"region"`
-	SlackHook string `json:"slack_hook"`
-	VPCCidr   string `json:"vpc_cidr"`
+	Region               string `json:"region"`
+	SlackHook            string `json:"slack_hook"`
+	VPCCidr              string `json:"vpc_cidr"`
+	PrivateKey           string `json:"private_key"`
+	HostsAccessConfig    string `json:"hosts_access_config"`
+	ServicesAccessConfig string `json:"services_access_config"`
 }
 
 var Config C
@@ -20,7 +23,11 @@ var Filename = ".onyx.json"
 
 func Default() *C {
 	return &C{
-		Region: "us-east-1",
+		Region:               "us-east-1",
+		PrivateKey:           "/opt/gatekeeper/keys/services.pem",
+		VPCCidr:              "10.10.0.0/16",
+		HostsAccessConfig:    "/opt/gatekeeper/hosts-access.json",
+		ServicesAccessConfig: "/opt/gatekeeper/services-access.json",
 	}
 }
 
@@ -76,6 +83,12 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.SlackHook = value
 	case "vpc_cidr":
 		loadedConfig.VPCCidr = value
+	case "private_key":
+		loadedConfig.PrivateKey = value
+	case "hosts_access_config":
+		loadedConfig.HostsAccessConfig = value
+	case "services_access_config":
+		loadedConfig.ServicesAccessConfig = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}

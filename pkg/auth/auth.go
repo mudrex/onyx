@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
 )
@@ -20,7 +21,7 @@ func CheckUserAccessForService(ctx context.Context, serviceName string) (string,
 		return "", false, err
 	}
 
-	file, _ := os.Open("/opt/gatekeeper/services-access.json")
+	file, _ := os.Open(config.Config.ServicesAccessConfig)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&accessList)
@@ -44,7 +45,7 @@ func CheckUserAccessForService(ctx context.Context, serviceName string) (string,
 func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool, error) {
 	username := utils.GetUser()
 
-	file, _ := os.Open("/opt/gatekeeper/hosts-access.json")
+	file, _ := os.Open(config.Config.HostsAccessConfig)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	err := decoder.Decode(&hostAccessList)
