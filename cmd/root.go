@@ -21,7 +21,8 @@ func init() {
 		sandstormCommand,
 		wafCommand,
 		sshCommand,
-		intiCommand,
+		initCommand,
+		configCommand,
 	)
 }
 

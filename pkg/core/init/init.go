@@ -26,7 +26,7 @@ func Init(ctx context.Context, force bool) error {
 	if force {
 		logger.Info("Overwriting %s file.", logger.Underline(config.Filename))
 
-		err := utils.CreateFileWithData(config.Filename, config.Config.ToString())
+		err := utils.CreateFileWithData(config.Filename, config.Default().ToString())
 		if err != nil {
 			return err
 		}

@@ -9,7 +9,7 @@ import (
 
 var forceInit bool
 
-var intiCommand = &cobra.Command{
+var initCommand = &cobra.Command{
 	Use:     "init",
 	Short:   "Sets up onyx config",
 	Example: "onyx init",
@@ -21,5 +21,5 @@ var intiCommand = &cobra.Command{
 }
 
 func init() {
-	intiCommand.Flags().BoolVarP(&forceInit, "force", "f", false, "Force re initialization of config")
+	initCommand.Flags().BoolVarP(&forceInit, "force", "f", false, "Force re initialization of config")
 }
