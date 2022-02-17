@@ -11,6 +11,7 @@ import (
 type C struct {
 	Region    string `json:"region"`
 	SlackHook string `json:"slack_hook"`
+	VPCCidr   string `json:"vpc_cidr"`
 }
 
 var Config C
@@ -73,6 +74,8 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.Region = value
 	case "slack_hook":
 		loadedConfig.SlackHook = value
+	case "vpc_cidr":
+		loadedConfig.VPCCidr = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}

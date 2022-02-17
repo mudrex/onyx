@@ -3,6 +3,7 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,6 +19,17 @@ var accessList = map[string]map[string]int{}
 
 func Do(ctx context.Context, userHost string) error {
 	host := strings.Split(userHost, "@")[1]
+
+	if config.Config.VPCCidr != "" {
+		_, cidr, err := net.ParseCIDR(config.Config.VPCCidr)
+		if err != nil {
+			return err
+		}
+
+		if !cidr.Contains(net.ParseIP(host)) {
+			return fmt.Errorf("%s is not a private IP. Aborting. This act will be reported", host)
+		}
+	}
 
 	username, isAuthorized, err := auth.CheckUserAccessForHostShell(ctx, host)
 	if err != nil {
