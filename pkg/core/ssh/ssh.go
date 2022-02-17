@@ -13,11 +13,13 @@ import (
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/notifier"
+	"github.com/mudrex/onyx/pkg/utils"
 )
 
 var accessList = map[string]map[string]int{}
 
 func Do(ctx context.Context, userHost string) error {
+	sshUser := strings.Split(userHost, "@")[0]
 	host := strings.Split(userHost, "@")[1]
 
 	if config.Config.VPCCidr != "" {
@@ -48,6 +50,11 @@ func Do(ctx context.Context, userHost string) error {
 		return err
 	}
 
+	willUserAbleToSSH := utils.CheckIfUserAbleToLogin(config.Config.PrivateKey, host, sshUser)
+	if !willUserAbleToSSH {
+		return fmt.Errorf("unable to ssh %s", userHost)
+	}
+
 	logger.Info("Spawning shell for %s", logger.Underline(userHost))
 
 	notifier.Notify(
@@ -55,12 +62,15 @@ func Do(ctx context.Context, userHost string) error {
 		fmt.Sprintf("[ssh/do] *%s* logged in to _%s_", username, userHost),
 	)
 
-	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s %s", config.Config.PrivateKey, userHost)
+	sshCmdDockerShell := fmt.Sprintf("ssh -t -i %s %s", config.Config.PrivateKey, userHost)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout
 	out1.Stderr = os.Stderr
-	out1.Run()
+	err = out1.Run()
+	if err != nil {
+		logger.Error("Unable to execute command over ssh %s", err.Error())
+	}
 
 	syscall.Setuid(userUID)
 	logger.Success("Exiting safely")
