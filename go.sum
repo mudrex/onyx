@@ -44,6 +44,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudwatchevents v1.3.2 h1:4u47k+v9zdLeptmH
 github.com/aws/aws-sdk-go-v2/service/cloudwatchevents v1.3.2/go.mod h1:GOU90Li766zlKWCfBXGUtq1c8PGvZG0p7NOXD06DbVk=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.5.0 h1:LG5ozCp5FRKOodR2NPtbn9c/yrSrodTkzOGjRJY5yV8=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.5.0/go.mod h1:3iBezuZtNxZnKX7Zv2JB/lGyGCSYOES8TMq4WSXPBl0=
+github.com/aws/aws-sdk-go-v2/service/ecr v1.14.0 h1:AAZJJAENsQ4yYbnfvqPZT8Nc1YlEd5CZ4usymlC2b4U=
+github.com/aws/aws-sdk-go-v2/service/ecr v1.14.0/go.mod h1:a3WUi3JjM3MFtIYenSYPJ7UZPXsw7U7vzebnynxucks=
 github.com/aws/aws-sdk-go-v2/service/ecs v1.2.2 h1:Hel1rLI6Wjn/N1xAf7hVfqEPJxwwdOFFBG881M41fPI=
 github.com/aws/aws-sdk-go-v2/service/ecs v1.2.2/go.mod h1:wfsCxzXu9fYoNl8NWbjc8OpC3ljwmL+5M/Zfa2xwm+M=
 github.com/aws/aws-sdk-go-v2/service/iam v1.3.1 h1:aTJTynJuqZjZ0ptNubJcEEN511FDiajRYI/PTnRO1U8=
