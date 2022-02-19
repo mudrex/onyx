@@ -23,6 +23,7 @@ func init() {
 		sshCommand,
 		initCommand,
 		configCommand,
+		ecrCommand,
 	)
 }
 
