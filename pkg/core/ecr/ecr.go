@@ -43,57 +43,86 @@ func getAllImages(ctx context.Context, ecrHandler *ecrLib.Client, repository str
 	return images, nil
 }
 
+func getAllRepositories(ctx context.Context, ecrHandler *ecrLib.Client) ([]string, error) {
+	repositories := make([]string, 0)
+
+	output, err := ecrHandler.DescribeRepositories(ctx, &ecrLib.DescribeRepositoriesInput{})
+	if err != nil {
+		return repositories, err
+	}
+
+	for _, repository := range output.Repositories {
+		repositories = append(repositories, aws.ToString(repository.RepositoryName))
+	}
+
+	return repositories, nil
+}
+
 func Cleanup(ctx context.Context, cfg aws.Config, repository string) error {
 	ecrHandler := ecrLib.NewFromConfig(cfg)
 
-	images, err := getAllImages(ctx, ecrHandler, repository)
-	if err != nil {
-		return err
+	repositories := make([]string, 0)
+	if repository == "" {
+		allRepositories, err := getAllRepositories(ctx, ecrHandler)
+		if err != nil {
+			return err
+		}
+
+		repositories = allRepositories
+	} else {
+		repositories = append(repositories, repository)
 	}
 
-	stagingImages := make(map[int64]Image)
-	sandboxImages := make(map[int64]Image)
-	prodImages := make(map[int64]Image)
-	for _, image := range images {
-		for _, tag := range image.ImageTags {
-			if stagingRTag.MatchString(tag) {
-				stagingImages[image.ImagePushedAt.Unix()] = Image{
-					ImageIdentifier: types.ImageIdentifier{
-						ImageDigest: image.ImageDigest,
-						ImageTag:    aws.String(tag),
-					},
-					PushedAt: image.ImagePushedAt.Unix(),
-				}
-			} else if rTag.MatchString(tag) {
-				prodImages[image.ImagePushedAt.Unix()] = Image{
-					ImageIdentifier: types.ImageIdentifier{
-						ImageDigest: image.ImageDigest,
-						ImageTag:    aws.String(tag),
-					},
-					PushedAt: image.ImagePushedAt.Unix(),
-				}
-			} else if sandboxRTag.MatchString(tag) {
-				sandboxImages[image.ImagePushedAt.Unix()] = Image{
-					ImageIdentifier: types.ImageIdentifier{
-						ImageDigest: image.ImageDigest,
-						ImageTag:    aws.String(tag),
-					},
-					PushedAt: image.ImagePushedAt.Unix(),
+	for _, repository := range repositories {
+		images, err := getAllImages(ctx, ecrHandler, repository)
+		if err != nil {
+			return err
+		}
+
+		stagingImages := make(map[int64]Image)
+		sandboxImages := make(map[int64]Image)
+		prodImages := make(map[int64]Image)
+		for _, image := range images {
+			for _, tag := range image.ImageTags {
+				if stagingRTag.MatchString(tag) {
+					stagingImages[image.ImagePushedAt.Unix()] = Image{
+						ImageIdentifier: types.ImageIdentifier{
+							ImageDigest: image.ImageDigest,
+							ImageTag:    aws.String(tag),
+						},
+						PushedAt: image.ImagePushedAt.Unix(),
+					}
+				} else if rTag.MatchString(tag) {
+					prodImages[image.ImagePushedAt.Unix()] = Image{
+						ImageIdentifier: types.ImageIdentifier{
+							ImageDigest: image.ImageDigest,
+							ImageTag:    aws.String(tag),
+						},
+						PushedAt: image.ImagePushedAt.Unix(),
+					}
+				} else if sandboxRTag.MatchString(tag) {
+					sandboxImages[image.ImagePushedAt.Unix()] = Image{
+						ImageIdentifier: types.ImageIdentifier{
+							ImageDigest: image.ImageDigest,
+							ImageTag:    aws.String(tag),
+						},
+						PushedAt: image.ImagePushedAt.Unix(),
+					}
 				}
 			}
 		}
-	}
 
-	if err := deleteImages(ctx, ecrHandler, repository, stagingImages, "staging"); err != nil {
-		return err
-	}
+		if err := deleteImages(ctx, ecrHandler, repository, stagingImages, "staging"); err != nil {
+			return err
+		}
 
-	if err := deleteImages(ctx, ecrHandler, repository, prodImages, "prod"); err != nil {
-		return err
-	}
+		if err := deleteImages(ctx, ecrHandler, repository, prodImages, "prod"); err != nil {
+			return err
+		}
 
-	if err := deleteImages(ctx, ecrHandler, repository, sandboxImages, "sandbox"); err != nil {
-		return err
+		if err := deleteImages(ctx, ecrHandler, repository, sandboxImages, "sandbox"); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -127,7 +156,7 @@ func deleteImages(
 	}
 
 	if len(imagesToDelete) == 0 {
-		logger.Info("no images to delete %s for %s", repository, identifier)
+		logger.Info("no images to delete %s for (%s)", repository, identifier)
 		return nil
 	}
 

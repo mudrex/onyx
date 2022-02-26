@@ -18,11 +18,11 @@ var ecrCommand = &cobra.Command{
 var ecrCleanupCommand = &cobra.Command{
 	Use:   "cleanup",
 	Short: "Cleans up older tags pushed on ECR repository",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return configPkg.LoadConfig()
 	},
-	Example: "onyx ecr cleanup",
+	Example: "onyx ecr cleanup [service-name]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
@@ -30,7 +30,11 @@ var ecrCleanupCommand = &cobra.Command{
 		}
 		ctx := context.Background()
 
-		return ecr.Cleanup(ctx, cfg, args[0])
+		if len(args) > 0 {
+			return ecr.Cleanup(ctx, cfg, args[0])
+		}
+
+		return ecr.Cleanup(ctx, cfg, "")
 	},
 }
 
