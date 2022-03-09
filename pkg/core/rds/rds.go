@@ -17,6 +17,7 @@ import (
 
 type Table struct {
 	Grants  []string `json:"grants"`
+	Columns []string `json:"columns"`
 	Applied bool     `json:"applied"`
 }
 
@@ -108,7 +109,11 @@ func builtQueriesForUser(dbname string, username string, accessMap map[string]Ta
 
 	for table, tableGrants := range accessMap {
 		if !tableGrants.Applied {
-			if len(tableGrants.Grants) > 1 {
+			if len(tableGrants.Columns) > 0 {
+				for _, grant := range tableGrants.Grants {
+					queries = append(queries, fmt.Sprintf("GRANT %s (%s) on %s.%s to '%s'@'%%'", grant, strings.Join(tableGrants.Columns, ", "), dbname, table, username))
+				}
+			} else if len(tableGrants.Grants) > 1 {
 				queries = append(queries, fmt.Sprintf("GRANT %s on %s.%s to '%s'@'%%'", strings.ToUpper(strings.Join(tableGrants.Grants, ", ")), dbname, table, username))
 			} else {
 				queries = append(queries, fmt.Sprintf("GRANT %s on %s.%s to '%s'@'%%'", strings.ToUpper(tableGrants.Grants[0]), dbname, table, username))
