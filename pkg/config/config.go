@@ -15,6 +15,8 @@ type C struct {
 	PrivateKey           string `json:"private_key"`
 	HostsAccessConfig    string `json:"hosts_access_config"`
 	ServicesAccessConfig string `json:"services_access_config"`
+	RDSAccessConfig      string `json:"rds_access_config"`
+	RDSSecretName        string `json:"rds_secret_name"`
 }
 
 var Config C
@@ -89,6 +91,10 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.HostsAccessConfig = value
 	case "services_access_config":
 		loadedConfig.ServicesAccessConfig = value
+	case "rds_access_config":
+		loadedConfig.RDSAccessConfig = value
+	case "rds_secret_name":
+		loadedConfig.RDSSecretName = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}
