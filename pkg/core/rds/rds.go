@@ -15,12 +15,6 @@ import (
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
-type Table struct {
-	Grants  []string `json:"grants"`
-	Columns []string `json:"columns"`
-	Applied bool     `json:"applied"`
-}
-
 type Database struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -28,7 +22,7 @@ type Database struct {
 	DBName   string `json:"dbname"`
 }
 
-type Config map[string]map[string]Table
+type Config map[string]map[string]map[string][]string
 
 func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	configData, err := utils.ReadFile(config.Config.RDSAccessConfig)
@@ -41,6 +35,19 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	err = json.Unmarshal([]byte(configData), &loadedConfig)
 	if err != nil {
 		return err
+	}
+
+	var configLock Config
+	if utils.FileExists(config.Config.RDSAccessConfig + ".lock") {
+		configLockData, err := utils.ReadFile(config.Config.RDSAccessConfig + ".lock")
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal([]byte(configLockData), &configLock)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(config.Config.RDSSecretName) == 0 {
@@ -56,14 +63,40 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	for username, accessMap := range loadedConfig {
-		queries := builtQueriesForUser(secret.DBName, username, accessMap)
+	run(getDiff(loadedConfig, configLock), true, secret)  // grant
+	run(getDiff(configLock, loadedConfig), false, secret) // revoke
+
+	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
+	if err != nil {
+		logger.Error("Unable to update config file")
+		return err
+	}
+
+	loadedConfigLockBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
+	if err != nil {
+		logger.Error("Unable to update config file")
+		return err
+	}
+
+	utils.CreateFileWithData(config.Config.RDSAccessConfig+".lock", string(loadedConfigLockBytes))
+
+	return utils.CreateFileWithData(config.Config.RDSAccessConfig, string(loadedConfigBytes))
+}
+
+func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Database) {
+	permission := "GRANT"
+	if !isGrant {
+		permission = "REVOKE"
+	}
+
+	for username, accessMap := range diff {
+		queries := builtQueriesForUser("mudrex", username, accessMap, isGrant)
 		if len(queries) == 0 {
 			logger.Success("Nothing to do for %s", username)
 			continue
 		}
 
-		logger.Info("Running %s for %s", strings.Join(queries, ";"), username)
+		logger.Info("(%s) Running for %s", permission, username)
 
 		c := fmt.Sprintf(
 			"mysql -h %s -u %s -p'%s' -e \"%s;\"",
@@ -80,44 +113,107 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		cmd.Stderr = &stderr
 		err := cmd.Run()
 
-		fmt.Println(stdout.String())
-		fmt.Println(stderr.String())
-
 		if err != nil {
-			return err
-		}
+			logger.Error("  %s; \n%s", strings.Join(queries, ";"), stderr.String())
 
-		logger.Success("Successfully ran %s for %s", strings.Join(queries, ";"), username)
-
-		for tableName, tableGrants := range accessMap {
-			tableGrants.Applied = true
-			accessMap[tableName] = tableGrants
+			// TODO: what to do with failed queries?
+			// should they not go in access.lock?
+			// how to extract failure query from string of queries
+		} else {
+			logger.Success("  %s;", strings.Join(queries, ";"))
 		}
 	}
-
-	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
-	if err != nil {
-		logger.Error("Unable to update config file")
-		return err
-	}
-
-	return utils.CreateFileWithData(config.Config.RDSAccessConfig, string(loadedConfigBytes))
 }
 
-func builtQueriesForUser(dbname string, username string, accessMap map[string]Table) []string {
+func getDiff(config, configLock Config) map[string]map[string]map[string][]string {
+	diff := make(map[string]map[string]map[string][]string)
+	for username, tableGrants := range config {
+		if _, ok := configLock[username]; !ok {
+			diff[username] = tableGrants
+			continue
+		}
+
+		lockedTables := configLock[username]
+		for tableName, grants := range tableGrants {
+			if _, ok := lockedTables[tableName]; !ok {
+				if tableMap, ok := diff[username]; !ok {
+					diff[username] = map[string]map[string][]string{
+						tableName: grants,
+					}
+				} else {
+					tableMap[tableName] = grants
+					diff[username] = tableMap
+				}
+				continue
+			}
+
+			for grant, columns := range grants {
+				if lockedColumns, ok := lockedTables[tableName][grant]; !ok {
+					if _, ok := diff[username]; !ok {
+						diff[username] = make(map[string]map[string][]string)
+					}
+
+					if _, ok := diff[username][tableName]; !ok {
+						diff[username][tableName] = make(map[string][]string)
+					}
+
+					diff[username][tableName][grant] = columns
+				} else {
+					if !utils.AreStringArrayEqual(columns, lockedColumns) {
+						columnsToAdd := utils.GetStringAMinusB(columns, lockedColumns)
+						if len(columnsToAdd) == 0 {
+							continue
+						}
+
+						if _, ok := diff[username]; !ok {
+							diff[username] = make(map[string]map[string][]string)
+						}
+
+						if _, ok := diff[username][tableName]; !ok {
+							diff[username][tableName] = make(map[string][]string)
+						}
+
+						if _, ok := diff[username][tableName][grant]; !ok {
+							diff[username][tableName][grant] = make([]string, 0)
+						}
+
+						diff[username][tableName][grant] = columnsToAdd
+					}
+				}
+			}
+		}
+	}
+
+	return diff
+}
+
+func builtQueriesForUser(dbname string, username string, accessMap map[string]map[string][]string, isGrant bool) []string {
 	queries := make([]string, 0)
 
-	for table, tableGrants := range accessMap {
-		if !tableGrants.Applied {
-			if len(tableGrants.Columns) > 0 {
-				for _, grant := range tableGrants.Grants {
-					queries = append(queries, fmt.Sprintf("GRANT %s (%s) on %s.%s to '%s'@'%%'", grant, strings.Join(tableGrants.Columns, ", "), dbname, table, username))
-				}
-			} else if len(tableGrants.Grants) > 1 {
-				queries = append(queries, fmt.Sprintf("GRANT %s on %s.%s to '%s'@'%%'", strings.ToUpper(strings.Join(tableGrants.Grants, ", ")), dbname, table, username))
-			} else {
-				queries = append(queries, fmt.Sprintf("GRANT %s on %s.%s to '%s'@'%%'", strings.ToUpper(tableGrants.Grants[0]), dbname, table, username))
+	permission := "GRANT"
+	permissionHelper := "TO"
+	if !isGrant {
+		permission = "REVOKE"
+		permissionHelper = "FROM"
+	}
+
+	for tableName, grants := range accessMap {
+		for grant, columns := range grants {
+			if len(columns) == 0 {
+				logger.Warn("Skipping %s on %s, no columns present", grant, tableName)
+				continue
 			}
+
+			if len(columns) == 1 && columns[0] == "*" {
+				if isGrant {
+					logger.Warn("%s demands %s on all columns %s.%s", username, grant, dbname, tableName)
+				}
+
+				queries = append(queries, fmt.Sprintf("%s %s on %s.%s %s '%s'@'%%'", permission, grant, dbname, tableName, permissionHelper, username))
+				continue
+			}
+
+			queries = append(queries, fmt.Sprintf("%s %s (%s) on %s.%s %s '%s'@'%%'", permission, grant, strings.Join(columns, ", "), dbname, tableName, permissionHelper, username))
 		}
 	}
 
