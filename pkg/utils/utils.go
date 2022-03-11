@@ -85,3 +85,50 @@ func GetUser() string {
 
 	return currUser.Username
 }
+
+func GetStringAMinusB(a, b []string) []string {
+	mapA := make(map[string]bool)
+	for _, str := range a {
+		mapA[str] = true
+	}
+
+	mapB := make(map[string]bool)
+	for _, str := range b {
+		mapB[str] = true
+	}
+
+	diff := make([]string, 0)
+	for c := range mapA {
+		if _, ok := mapB[c]; !ok {
+			diff = append(diff, c)
+		}
+	}
+
+	return diff
+}
+
+func AreStringArrayEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	if len(a) == 0 && len(b) == 0 {
+		return true
+	}
+
+	mapA := make(map[string]bool)
+	for _, str := range a {
+		mapA[str] = true
+	}
+
+	mapB := make(map[string]bool)
+	for _, str := range b {
+		mapB[str] = true
+	}
+
+	for c := range mapA {
+		delete(mapB, c)
+	}
+
+	return len(mapB) == 0
+}
