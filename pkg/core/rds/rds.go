@@ -90,7 +90,7 @@ func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Da
 	}
 
 	for username, accessMap := range diff {
-		queries := builtQueriesForUser("mudrex", username, accessMap, isGrant)
+		queries := builtQueriesForUser(secret.DBName, username, accessMap, isGrant)
 		if len(queries) == 0 {
 			logger.Success("Nothing to do for %s", username)
 			continue
