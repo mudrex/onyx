@@ -11,7 +11,7 @@ import (
 	"github.com/mudrex/onyx/pkg/logger"
 )
 
-var rTag, _ = regexp.Compile(`v\d+.\d+.\d+`)
+var rTag, _ = regexp.Compile(`v\d+.\d+.\d+.*`)
 var stagingRTag, _ = regexp.Compile(`(staging|master).*`)
 var sandboxRTag, _ = regexp.Compile(`sandbox.*`)
 
@@ -58,7 +58,7 @@ func getAllRepositories(ctx context.Context, ecrHandler *ecrLib.Client) ([]strin
 	return repositories, nil
 }
 
-func Cleanup(ctx context.Context, cfg aws.Config, repository string) error {
+func Cleanup(ctx context.Context, cfg aws.Config, repository string, preserveImages int32) error {
 	ecrHandler := ecrLib.NewFromConfig(cfg)
 
 	repositories := make([]string, 0)
@@ -82,6 +82,7 @@ func Cleanup(ctx context.Context, cfg aws.Config, repository string) error {
 		stagingImages := make(map[int64]Image)
 		sandboxImages := make(map[int64]Image)
 		prodImages := make(map[int64]Image)
+		restImages := make(map[int64]Image)
 		for _, image := range images {
 			for _, tag := range image.ImageTags {
 				if stagingRTag.MatchString(tag) {
@@ -108,19 +109,31 @@ func Cleanup(ctx context.Context, cfg aws.Config, repository string) error {
 						},
 						PushedAt: image.ImagePushedAt.Unix(),
 					}
+				} else {
+					restImages[image.ImagePushedAt.Unix()] = Image{
+						ImageIdentifier: types.ImageIdentifier{
+							ImageDigest: image.ImageDigest,
+							ImageTag:    aws.String(tag),
+						},
+						PushedAt: image.ImagePushedAt.Unix(),
+					}
 				}
 			}
 		}
 
-		if err := deleteImages(ctx, ecrHandler, repository, stagingImages, "staging"); err != nil {
+		if err := deleteImages(ctx, ecrHandler, repository, stagingImages, preserveImages, "staging"); err != nil {
 			return err
 		}
 
-		if err := deleteImages(ctx, ecrHandler, repository, prodImages, "prod"); err != nil {
+		if err := deleteImages(ctx, ecrHandler, repository, prodImages, preserveImages, "prod"); err != nil {
 			return err
 		}
 
-		if err := deleteImages(ctx, ecrHandler, repository, sandboxImages, "sandbox"); err != nil {
+		if err := deleteImages(ctx, ecrHandler, repository, sandboxImages, preserveImages, "sandbox"); err != nil {
+			return err
+		}
+
+		if err := deleteImages(ctx, ecrHandler, repository, restImages, preserveImages, "rest"); err != nil {
 			return err
 		}
 	}
@@ -133,6 +146,7 @@ func deleteImages(
 	ecrHandler *ecrLib.Client,
 	repository string,
 	images map[int64]Image,
+	preserveImages int32,
 	identifier string,
 ) error {
 	keys := make([]int64, len(images))
@@ -147,7 +161,7 @@ func deleteImages(
 	})
 
 	imagesToDelete := make([]types.ImageIdentifier, 0)
-	j := len(keys) - 2
+	j := len(keys) - int(preserveImages)
 	for _, k := range keys {
 		if j > 0 {
 			imagesToDelete = append(imagesToDelete, images[int64(k)].ImageIdentifier)
