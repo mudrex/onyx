@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bufio"
+	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -131,4 +133,10 @@ func AreStringArrayEqual(a, b []string) bool {
 	}
 
 	return len(mapB) == 0
+}
+
+func GetSHA512Checksum(data []byte) string {
+	hasher := sha512.New()
+	hasher.Write(data)
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }

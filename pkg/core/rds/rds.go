@@ -24,6 +24,11 @@ type Database struct {
 
 type Config map[string]map[string]map[string][]string
 
+type ConfigLock struct {
+	Checksum     string `json:"checksum"`
+	LockedConfig Config `json:"locked_config"`
+}
+
 func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	configData, err := utils.ReadFile(config.Config.RDSAccessConfig)
 	if err != nil {
@@ -37,7 +42,7 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	var configLock Config
+	var configLock ConfigLock
 	if utils.FileExists(config.Config.RDSAccessConfig + ".lock") {
 		configLockData, err := utils.ReadFile(config.Config.RDSAccessConfig + ".lock")
 		if err != nil {
@@ -48,6 +53,11 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if utils.GetSHA512Checksum([]byte(configData)) == configLock.Checksum {
+		logger.Info("Nothing to do")
+		return nil
 	}
 
 	if len(config.Config.RDSSecretName) == 0 {
@@ -63,8 +73,8 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	run(getDiff(loadedConfig, configLock), true, secret)  // grant
-	run(getDiff(configLock, loadedConfig), false, secret) // revoke
+	run(getDiff(loadedConfig, configLock.LockedConfig), true, secret)  // grant
+	run(getDiff(configLock.LockedConfig, loadedConfig), false, secret) // revoke
 
 	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
 	if err != nil {
@@ -72,15 +82,18 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	loadedConfigLockBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
+	utils.CreateFileWithData(config.Config.RDSAccessConfig, string(loadedConfigBytes))
+
+	configLock.LockedConfig = loadedConfig
+	configLock.Checksum = utils.GetSHA512Checksum(loadedConfigBytes)
+
+	loadedConfigLockBytes, err := json.MarshalIndent(configLock, "", "    ")
 	if err != nil {
 		logger.Error("Unable to update config file")
 		return err
 	}
 
-	utils.CreateFileWithData(config.Config.RDSAccessConfig+".lock", string(loadedConfigLockBytes))
-
-	return utils.CreateFileWithData(config.Config.RDSAccessConfig, string(loadedConfigBytes))
+	return utils.CreateFileWithData(config.Config.RDSAccessConfig+".lock", string(loadedConfigLockBytes))
 }
 
 func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Database) {
