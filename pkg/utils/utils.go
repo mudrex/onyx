@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/user"
@@ -26,7 +27,9 @@ var sources = []string{
 func GetPublicIP() string {
 	re, _ := regexp.Compile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$`)
 
-	for _, source := range sources {
+	for i := 5; i > 0; i-- {
+		source := sources[rand.Intn(len(sources))]
+
 		logger.Info("Getting IP address from %s", logger.Underline(source))
 		resp, err := http.Get(source)
 		if err != nil {
