@@ -12,6 +12,7 @@ import (
 	"os/user"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/mudrex/onyx/pkg/logger"
 )
@@ -28,6 +29,7 @@ func GetPublicIP() string {
 	re, _ := regexp.Compile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$`)
 
 	for i := 5; i > 0; i-- {
+		rand.Seed(time.Now().Unix())
 		source := sources[rand.Intn(len(sources))]
 
 		logger.Info("Getting IP address from %s", logger.Underline(source))
