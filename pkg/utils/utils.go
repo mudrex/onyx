@@ -18,10 +18,8 @@ import (
 )
 
 var sources = []string{
-	"https://checkip.amazonaws.com",
 	"https://api.ipify.org?format=text",
 	"https://api64.ipify.org/?format=text",
-	"https://www.ipify.org",
 	"https://myexternalip.com/raw",
 }
 
@@ -47,10 +45,12 @@ func GetPublicIP() string {
 		} else {
 			cidr := fmt.Sprintf("%s/32", strings.TrimSpace(string(ip)))
 			if re.MatchString(cidr) {
-				logger.Success("Authorizing for CIDR: " + cidr)
+				logger.Success("Authorizing for CIDR: %s %s", logger.Green(logger.Underline(cidr)), logger.Green("       <---- This IP will be whitelisted"))
 				return cidr
 			}
 		}
+
+		logger.Warn("Unable to fetch ip from %s. Trying another source...", source)
 	}
 
 	logger.Fatal("Unable to determine ip")

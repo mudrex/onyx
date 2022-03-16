@@ -308,7 +308,9 @@ func (sg *SecurityGroup) Revoke(ctx context.Context, cfg aws.Config, rules []Sec
 
 	if output.Return {
 		logger.Success("Revoked old rules for %s", logger.Bold(sg.ID))
-		sg.DisplaySecurityGroup(ctx, cfg, nil, false)
+		if !followedByAuthorize {
+			sg.DisplaySecurityGroup(ctx, cfg, nil, false)
+		}
 		return nil
 	}
 
