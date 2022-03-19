@@ -145,3 +145,27 @@ func GetSHA512Checksum(data []byte) string {
 	hasher.Write(data)
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
+
+func GetRandomString(n int) string {
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+	rand.Seed(time.Now().UnixNano())
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+func GetRandomStringWithSymbols(n int) string {
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]-=|}{+_''!@#$%^&*():?><abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+	rand.Seed(time.Now().UnixNano())
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}

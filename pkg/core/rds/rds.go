@@ -29,6 +29,8 @@ type ConfigLock struct {
 	LockedConfig Config `json:"locked_config"`
 }
 
+var databaseSecret = Database{}
+
 func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	configData, err := utils.ReadFile(config.Config.RDSAccessConfig)
 	if err != nil {
@@ -66,15 +68,25 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 
 	secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.RDSSecretName)
 
-	var secret Database
-
-	err = json.Unmarshal([]byte(secretString), &secret)
+	err = json.Unmarshal([]byte(secretString), &databaseSecret)
 	if err != nil {
 		return err
 	}
 
-	run(getDiff(loadedConfig, configLock.LockedConfig), true, secret)  // grant
-	run(getDiff(configLock.LockedConfig, loadedConfig), false, secret) // revoke
+	grantPermissions, usersToAdd := getDiff(loadedConfig, configLock.LockedConfig, true)
+	err = createUsers(ctx, cfg, usersToAdd)
+	if err != nil {
+		return err
+	}
+
+	revokePermission, usersToRemove := getDiff(configLock.LockedConfig, loadedConfig, false)
+	err = dropUsers(ctx, cfg, usersToRemove)
+	if err != nil {
+		return err
+	}
+
+	run(ctx, cfg, grantPermissions, true, databaseSecret)  // grant
+	run(ctx, cfg, revokePermission, false, databaseSecret) // revoke
 
 	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
 	if err != nil {
@@ -96,7 +108,13 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	return utils.CreateFileWithData(config.Config.RDSAccessConfig+".lock", string(loadedConfigLockBytes))
 }
 
-func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Database) {
+func run(
+	ctx context.Context,
+	cfg aws.Config,
+	diff map[string]map[string]map[string][]string,
+	isGrant bool,
+	secret Database,
+) {
 	permission := "GRANT"
 	if !isGrant {
 		permission = "REVOKE"
@@ -111,23 +129,9 @@ func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Da
 
 		logger.Info("(%s) Running for %s", permission, username)
 
-		c := fmt.Sprintf(
-			"mysql -h %s -u %s -p'%s' -e \"%s;\"",
-			secret.Host,
-			secret.Username,
-			secret.Password,
-			strings.Join(queries, ";"),
-		)
-
-		var stdout bytes.Buffer
-		var stderr bytes.Buffer
-		cmd := exec.Command("bash", "-c", c)
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-		err := cmd.Run()
-
+		_, stderr, err := runQuery(ctx, cfg, strings.Join(queries, ";"))
 		if err != nil {
-			logger.Error("  %s; \n%s", strings.Join(queries, ";"), stderr.String())
+			logger.Error("  %s; \n%s", strings.Join(queries, ";"), stderr)
 
 			// TODO: what to do with failed queries?
 			// should they not go in access.lock?
@@ -138,11 +142,19 @@ func run(diff map[string]map[string]map[string][]string, isGrant bool, secret Da
 	}
 }
 
-func getDiff(config, configLock Config) map[string]map[string]map[string][]string {
+func getDiff(config, configLock Config, isGrant bool) (map[string]map[string]map[string][]string, []string) {
 	diff := make(map[string]map[string]map[string][]string)
+	users := make([]string, 0)
+
 	for username, tableGrants := range config {
 		if _, ok := configLock[username]; !ok {
-			diff[username] = tableGrants
+			if isGrant {
+				users = append(users, username)
+				diff[username] = tableGrants
+			} else {
+				users = append(users, username)
+			}
+
 			continue
 		}
 
@@ -197,7 +209,7 @@ func getDiff(config, configLock Config) map[string]map[string]map[string][]strin
 		}
 	}
 
-	return diff
+	return diff, users
 }
 
 func builtQueriesForUser(dbname string, username string, accessMap map[string]map[string][]string, isGrant bool) []string {
@@ -231,4 +243,69 @@ func builtQueriesForUser(dbname string, username string, accessMap map[string]ma
 	}
 
 	return queries
+}
+
+func runQuery(ctx context.Context, cfg aws.Config, query string) (string, string, error) {
+	if databaseSecret.Host == "" {
+		logger.Info("Fetching DB credentials")
+
+		secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.RDSSecretName)
+		err := json.Unmarshal([]byte(secretString), &databaseSecret)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	c := fmt.Sprintf(
+		"mysql -h %s -u %s -p'%s' -e \"%s;\"",
+		databaseSecret.Host,
+		databaseSecret.Username,
+		databaseSecret.Password,
+		query,
+	)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("bash", "-c", c)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	return stdout.String(), stderr.String(), cmd.Run()
+}
+
+func createUsers(ctx context.Context, cfg aws.Config, usernames []string) error {
+	for _, username := range usernames {
+		if username == "" {
+			continue
+		}
+
+		newPassword := utils.GetRandomStringWithSymbols(40)
+		_, _, err := runQuery(ctx, cfg, fmt.Sprintf("CREATE USER '%s'@'%%' IDENTIFIED BY '%s'", username, newPassword))
+		if err != nil {
+			return err
+		}
+
+		logger.Info("Created user %s", username)
+
+		// TODO: send mail to user with db password
+	}
+
+	return nil
+}
+
+func dropUsers(ctx context.Context, cfg aws.Config, usernames []string) error {
+	for _, username := range usernames {
+		if username == "" {
+			continue
+		}
+
+		_, _, err := runQuery(ctx, cfg, fmt.Sprintf("DROP USER '%s'@'%%'", username))
+		if err != nil {
+			return err
+		}
+
+		logger.Warn("Dropped user %s", username)
+	}
+
+	return nil
 }
