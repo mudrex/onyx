@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/utils"
 )
 
 func Whoami() (string, error) {
@@ -31,18 +31,6 @@ func Whoami() (string, error) {
 	return *output.User.UserName, nil
 }
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]-=|}{+_''!@#$%^&*():?><abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
-
-func RandStringRunes(n int) string {
-	rand.Seed(time.Now().UnixNano())
-
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
-
 func CreateUser(userName, path string) error {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 	if err != nil {
@@ -59,7 +47,7 @@ func CreateUser(userName, path string) error {
 		return err
 	}
 
-	newPassword := RandStringRunes(40)
+	newPassword := utils.GetRandomStringWithSymbols(40)
 	_, err = iamHandler.CreateLoginProfile(ctx, &iam.CreateLoginProfileInput{
 		UserName:              output.User.UserName,
 		Password:              aws.String(newPassword),
