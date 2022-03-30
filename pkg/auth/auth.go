@@ -9,7 +9,6 @@ import (
 
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
-	"github.com/mudrex/onyx/pkg/utils"
 )
 
 var accessList = make(map[string][]string)
@@ -42,9 +41,7 @@ func CheckUserAccessForService(ctx context.Context, serviceName string) (string,
 	return currUser.Username, false, nil
 }
 
-func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool, error) {
-	username := utils.GetUser()
-
+func CheckUserAccessForHostShell(ctx context.Context, username, host string) (bool, error) {
 	file, _ := os.Open(config.Config.HostsAccessConfig)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
@@ -55,25 +52,27 @@ func CheckUserAccessForHostShell(ctx context.Context, host string) (string, bool
 
 	if _, ok := hostAccessList[host]; !ok {
 		logger.Warn("%s doesn't exist in allowed list. Please get it added.", host)
-		return username, false, nil
+
+		// TODO: temp allow access to all hosts except a few critical
+		return true, nil
 	}
 
 	if allAccess, ok := hostAccessList[host]["all"]; ok {
 		// if this host has access for "all" enabled, allow for everyone
 		if allAccess {
-			return username, true, nil
+			return true, nil
 		}
 
 		if access, ok := hostAccessList[host][username]; ok {
-			return username, access, nil
+			return access, nil
 		}
 
-		return username, false, nil
+		return false, nil
 	}
 
 	if access, ok := hostAccessList[host][username]; ok {
-		return username, access, nil
+		return access, nil
 	}
 
-	return username, false, nil
+	return false, nil
 }
