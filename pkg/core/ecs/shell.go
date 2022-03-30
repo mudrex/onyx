@@ -27,8 +27,7 @@ func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName stri
 		return err
 	}
 
-	// TODO: disable StrictHostKeyChecking
-	cmd := fmt.Sprintf("sudo ssh -i %s ec2-user@%s 'docker ps | grep \"%s\" | cut -d\" \" -f1 | head -1'", config.Config.PrivateKey, host, serviceName)
+	cmd := fmt.Sprintf("sudo ssh -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker ps | grep \"%s\" | cut -d\" \" -f1 | head -1'", config.Config.PrivateKey, host, serviceName)
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		return err
@@ -43,7 +42,7 @@ func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName stri
 		fmt.Sprintf("[ecs/spawn-shell] *%s* logged in to _%s_ for %s", utils.GetUser(), host, serviceName),
 	)
 
-	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s ec2-user@%s 'docker exec -it %s bash'", config.Config.PrivateKey, host, containerID)
+	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker exec -it %s bash'", config.Config.PrivateKey, host, containerID)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout
@@ -165,7 +164,7 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 	}
 
 	// TODO: disable StrictHostKeyChecking
-	cmd := fmt.Sprintf("sudo ssh -i %s ec2-user@%s 'docker ps --format '{{.Names}}' | grep \"%s\" | cut -d\" \" -f1 | head -1'", config.Config.PrivateKey, host, strings.ReplaceAll(serviceName, "_", "-"))
+	cmd := fmt.Sprintf("sudo ssh -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker ps --format '{{.Names}}' | grep \"%s\" | cut -d\" \" -f1 | head -1'", config.Config.PrivateKey, host, strings.ReplaceAll(serviceName, "_", "-"))
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		return err
@@ -180,7 +179,7 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 		fmt.Sprintf("[ecs/tail-logs] *%s* tailed logs for %s on _%s_", utils.GetUser(), serviceName, host),
 	)
 
-	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s ec2-user@%s 'docker logs -f %s --tail %d'", config.Config.PrivateKey, host, containerID, tailLogs)
+	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker logs -f %s --tail %d'", config.Config.PrivateKey, host, containerID, tailLogs)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout
