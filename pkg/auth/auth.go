@@ -4,41 +4,58 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"os/user"
 	"strings"
 
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
 )
 
-var accessList = make(map[string][]string)
+var servicesAccessList = make(map[string][]string)
 var hostAccessList = make(map[string]map[string]bool)
 
-func CheckUserAccessForService(ctx context.Context, serviceName string) (string, bool, error) {
-	currUser, err := user.Current()
-	if err != nil {
-		return "", false, err
+func printAllowedServices() {
+	services := make([]string, len(servicesAccessList))
+
+	i := 0
+	for service := range servicesAccessList {
+		services[i] = logger.Bold(service)
+		i++
 	}
 
+	logger.Info("Allowed services: %s", strings.Join(services, ", "))
+}
+
+func CheckUserAccessForService(ctx context.Context, username, serviceName string) (bool, error) {
 	file, _ := os.Open(config.Config.ServicesAccessConfig)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&accessList)
+	err := decoder.Decode(&servicesAccessList)
 	if err != nil {
 		panic(err)
 	}
 
-	for service, users := range accessList {
+	if _, ok := servicesAccessList[serviceName]; !ok {
+		logger.Error(
+			"%s doesn't exist in service list, please get it added in %s in keyhouse repository if required.",
+			logger.Bold(serviceName),
+			logger.Underline("<env>/entry-server/services-access.json"),
+		)
+
+		printAllowedServices()
+		return false, nil
+	}
+
+	for service, users := range servicesAccessList {
 		if strings.Contains(serviceName, service) {
 			for _, user := range users {
-				if currUser.Username == user {
-					return currUser.Username, true, nil
+				if username == user {
+					return true, nil
 				}
 			}
 		}
 	}
 
-	return currUser.Username, false, nil
+	return false, nil
 }
 
 func CheckUserAccessForHostShell(ctx context.Context, username, host string) (bool, error) {

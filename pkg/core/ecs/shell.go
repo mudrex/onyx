@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
@@ -88,7 +89,14 @@ func getServicesHosts(ctx context.Context, cfg aws.Config, serviceName, clusterN
 }
 
 func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, clusterName string) error {
-	username, isAuthorized, err := auth.CheckUserAccessForService(ctx, serviceName)
+	currUser, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	username := currUser.Username
+
+	isAuthorized, err := auth.CheckUserAccessForService(ctx, username, serviceName)
 	if err != nil {
 		return err
 	}
@@ -186,7 +194,14 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 }
 
 func TailContainerLogs(ctx context.Context, cfg aws.Config, serviceName, clusterName string, tailLogs int32) error {
-	username, isAuthorized, err := auth.CheckUserAccessForService(ctx, serviceName)
+	currUser, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	username := currUser.Username
+
+	isAuthorized, err := auth.CheckUserAccessForService(ctx, username, serviceName)
 	if err != nil {
 		return err
 	}
