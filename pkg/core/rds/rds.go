@@ -12,6 +12,7 @@ import (
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/secretsmanager"
 	"github.com/mudrex/onyx/pkg/logger"
+	"github.com/mudrex/onyx/pkg/notifier"
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
@@ -31,6 +32,8 @@ type ConfigLock struct {
 
 var databaseSecret = Database{}
 
+var CriticalTables = make(map[string]bool)
+
 func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 	configData, err := utils.ReadFile(config.Config.RDSAccessConfig)
 	if err != nil {
@@ -44,6 +47,7 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
+	// Load lock file
 	var configLock ConfigLock
 	if utils.FileExists(config.Config.RDSAccessConfig + ".lock") {
 		configLockData, err := utils.ReadFile(config.Config.RDSAccessConfig + ".lock")
@@ -57,6 +61,7 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		}
 	}
 
+	// Verify checksum to prevent extra work
 	if utils.GetSHA512Checksum([]byte(configData)) == configLock.Checksum {
 		logger.Info("Nothing to do")
 		return nil
@@ -64,6 +69,24 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 
 	if len(config.Config.RDSSecretName) == 0 {
 		return fmt.Errorf("RDS secret name not specified")
+	}
+
+	// Load critical table list
+	if utils.FileExists(config.Config.RDSCriticalTablesConfig) {
+		var criticalTablesList []string
+		criticalTablesListData, err := utils.ReadFile(config.Config.RDSCriticalTablesConfig)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal([]byte(criticalTablesListData), &criticalTablesList)
+		if err != nil {
+			return err
+		}
+
+		for _, table := range criticalTablesList {
+			CriticalTables[table] = true
+		}
 	}
 
 	secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.RDSSecretName)
@@ -223,6 +246,16 @@ func builtQueriesForUser(dbname string, username string, accessMap map[string]ma
 	}
 
 	for tableName, grants := range accessMap {
+		if permission == "GRANT" {
+			if _, ok := CriticalTables[tableName]; ok {
+				logger.Warn("%s is being granted %v access to %s", username, grants, tableName)
+				notifier.Notify(
+					config.Config.SlackHook,
+					fmt.Sprintf(":bangbang: %s is being granted %v access to %s", username, grants, tableName),
+				)
+			}
+		}
+
 		for grant, columns := range grants {
 			if len(columns) == 0 {
 				logger.Warn("Skipping %s on %s, no columns present", grant, tableName)

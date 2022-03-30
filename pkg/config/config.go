@@ -9,14 +9,15 @@ import (
 )
 
 type C struct {
-	Region               string `json:"region"`
-	SlackHook            string `json:"slack_hook"`
-	VPCCidr              string `json:"vpc_cidr"`
-	PrivateKey           string `json:"private_key"`
-	HostsAccessConfig    string `json:"hosts_access_config"`
-	ServicesAccessConfig string `json:"services_access_config"`
-	RDSAccessConfig      string `json:"rds_access_config"`
-	RDSSecretName        string `json:"rds_secret_name"`
+	Region                  string `json:"region"`
+	SlackHook               string `json:"slack_hook"`
+	VPCCidr                 string `json:"vpc_cidr"`
+	PrivateKey              string `json:"private_key"`
+	HostsAccessConfig       string `json:"hosts_access_config"`
+	ServicesAccessConfig    string `json:"services_access_config"`
+	RDSAccessConfig         string `json:"rds_access_config"`
+	RDSCriticalTablesConfig string `json:"rds_critical_tables_config"`
+	RDSSecretName           string `json:"rds_secret_name"`
 }
 
 var Config C
@@ -95,6 +96,8 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.RDSAccessConfig = value
 	case "rds_secret_name":
 		loadedConfig.RDSSecretName = value
+	case "rds_critical_tables_config":
+		loadedConfig.RDSCriticalTablesConfig = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}
