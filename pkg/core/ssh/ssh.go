@@ -22,6 +22,8 @@ func Do(ctx context.Context, userHost string) error {
 	sshUser := strings.Split(userHost, "@")[0]
 	host := strings.Split(userHost, "@")[1]
 
+	username := utils.GetUser()
+
 	if config.Config.VPCCidr != "" {
 		_, cidr, err := net.ParseCIDR(config.Config.VPCCidr)
 		if err != nil {
@@ -29,11 +31,16 @@ func Do(ctx context.Context, userHost string) error {
 		}
 
 		if !cidr.Contains(net.ParseIP(host)) {
-			return fmt.Errorf("%s is not a private IP. Aborting. This act will be reported", host)
+			notifier.Notify(
+				config.Config.SlackHook,
+				fmt.Sprintf(":bangbang: [ssh/do] *%s* attempted ssh via public ip: _%s_", username, host),
+			)
+
+			return fmt.Errorf("%s is not a private IP. Aborting. %s", logger.Underline(host), logger.Red("This act will be reported"))
 		}
 	}
 
-	username, isAuthorized, err := auth.CheckUserAccessForHostShell(ctx, host)
+	isAuthorized, err := auth.CheckUserAccessForHostShell(ctx, username, host)
 	if err != nil {
 		return err
 	}
