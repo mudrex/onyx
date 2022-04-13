@@ -16,6 +16,7 @@ type C struct {
 	HostsAccessConfig       string `json:"hosts_access_config"`
 	ServicesAccessConfig    string `json:"services_access_config"`
 	RDSAccessConfig         string `json:"rds_access_config"`
+	RDSServicesAccessConfig string `json:"rds_services_access_config"`
 	RDSCriticalTablesConfig string `json:"rds_critical_tables_config"`
 	RDSSecretName           string `json:"rds_secret_name"`
 }
@@ -96,6 +97,8 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.RDSAccessConfig = value
 	case "rds_secret_name":
 		loadedConfig.RDSSecretName = value
+	case "rds_services_access_config":
+		loadedConfig.RDSServicesAccessConfig = value
 	case "rds_critical_tables_config":
 		loadedConfig.RDSCriticalTablesConfig = value
 	default:

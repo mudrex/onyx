@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,7 +19,7 @@ var rdsCommand = &cobra.Command{
 var rdsRefreshAccessCommand = &cobra.Command{
 	Use:   "refresh-access",
 	Short: "Refresh access from access file",
-	Args:  cobra.NoArgs,
+	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return configPkg.LoadConfig()
 	},
@@ -30,7 +31,13 @@ var rdsRefreshAccessCommand = &cobra.Command{
 		}
 		ctx := context.Background()
 
-		return rds.RefreshAccess(ctx, cfg)
+		if args[0] == "users" {
+			return rds.RefreshUserAccess(ctx, cfg)
+		} else if args[0] == "services" {
+			return rds.RefreshServicesAccess(ctx, cfg)
+		}
+
+		return errors.New("Invalid type " + args[0])
 	},
 }
 

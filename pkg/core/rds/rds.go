@@ -34,8 +34,16 @@ var databaseSecret = Database{}
 
 var CriticalTables = make(map[string]bool)
 
-func RefreshAccess(ctx context.Context, cfg aws.Config) error {
-	configData, err := utils.ReadFile(config.Config.RDSAccessConfig)
+func RefreshUserAccess(ctx context.Context, cfg aws.Config) error {
+	return refreshAccess(ctx, cfg, config.Config.RDSAccessConfig)
+}
+
+func RefreshServicesAccess(ctx context.Context, cfg aws.Config) error {
+	return refreshAccess(ctx, cfg, config.Config.RDSServicesAccessConfig)
+}
+
+func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) error {
+	configData, err := utils.ReadFile(accessConfig)
 	if err != nil {
 		return err
 	}
@@ -49,8 +57,8 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 
 	// Load lock file
 	var configLock ConfigLock
-	if utils.FileExists(config.Config.RDSAccessConfig + ".lock") {
-		configLockData, err := utils.ReadFile(config.Config.RDSAccessConfig + ".lock")
+	if utils.FileExists(accessConfig + ".lock") {
+		configLockData, err := utils.ReadFile(accessConfig + ".lock")
 		if err != nil {
 			return err
 		}
@@ -117,7 +125,7 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	utils.CreateFileWithData(config.Config.RDSAccessConfig, string(loadedConfigBytes))
+	utils.CreateFileWithData(accessConfig, string(loadedConfigBytes))
 
 	configLock.LockedConfig = loadedConfig
 	configLock.Checksum = utils.GetSHA512Checksum(loadedConfigBytes)
@@ -128,7 +136,7 @@ func RefreshAccess(ctx context.Context, cfg aws.Config) error {
 		return err
 	}
 
-	return utils.CreateFileWithData(config.Config.RDSAccessConfig+".lock", string(loadedConfigLockBytes))
+	return utils.CreateFileWithData(accessConfig+".lock", string(loadedConfigLockBytes))
 }
 
 func run(
