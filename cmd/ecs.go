@@ -74,6 +74,21 @@ var ecsSpawnShellCommand = &cobra.Command{
 	},
 }
 
+var ecsListAccessCommand = &cobra.Command{
+	Use:   "list-access",
+	Short: "Lists access for the user",
+	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
+	Example: "onyx ecs list-access",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+
+		return ecs.ListAccess(ctx)
+	},
+}
+
 var ecsTailLogsCommand = &cobra.Command{
 	Use:   "tail-logs --cluster <cluster-name> --service <service-name> [--tail n]",
 	Short: "Tail logs for a service container",
@@ -160,7 +175,7 @@ var ecsRevertToCommand = &cobra.Command{
 }
 
 func init() {
-	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand, ecsSpawnShellCommand, ecsTailLogsCommand)
+	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand, ecsSpawnShellCommand, ecsTailLogsCommand, ecsListAccessCommand)
 
 	ecsRestartServiceCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsRestartServiceCommand.MarkFlagRequired("cluster")
