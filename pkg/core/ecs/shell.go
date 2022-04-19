@@ -232,3 +232,15 @@ func TailContainerLogs(ctx context.Context, cfg aws.Config, serviceName, cluster
 
 	return tailContainerLogs(ctx, host, serviceName, tailLogs)
 }
+
+func ListAccess(ctx context.Context) error {
+	currUser, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	username := currUser.Username
+
+	auth.GetListOfAllowedServices(username)
+	return nil
+}

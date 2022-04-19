@@ -17,4 +17,5 @@ require (
 	github.com/fatih/color v1.10.0
 	github.com/spf13/cobra v1.1.3
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 )

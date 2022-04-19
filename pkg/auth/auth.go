@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -23,6 +24,27 @@ func printAllowedServices() {
 	}
 
 	logger.Info("Allowed services: %s", strings.Join(services, ", "))
+}
+
+func GetListOfAllowedServices(username string) {
+	file, _ := os.Open(config.Config.ServicesAccessConfig)
+	defer file.Close()
+	decoder := json.NewDecoder(file)
+	err := decoder.Decode(&servicesAccessList)
+	if err != nil {
+		panic(err)
+	}
+
+	logger.Info("List of allowed services for " + username)
+
+	for serviceName, users := range servicesAccessList {
+		for _, user := range users {
+			if user == username {
+				fmt.Println(serviceName)
+				break
+			}
+		}
+	}
 }
 
 func CheckUserAccessForService(ctx context.Context, username, serviceName string) (bool, error) {
@@ -46,7 +68,7 @@ func CheckUserAccessForService(ctx context.Context, username, serviceName string
 	}
 
 	for service, users := range servicesAccessList {
-		if strings.Contains(serviceName, service) {
+		if strings.Contains(service, serviceName) {
 			for _, user := range users {
 				if username == user {
 					return true, nil
