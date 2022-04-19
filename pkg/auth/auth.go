@@ -68,7 +68,7 @@ func CheckUserAccessForService(ctx context.Context, username, serviceName string
 	}
 
 	for service, users := range servicesAccessList {
-		if strings.Contains(serviceName, service) {
+		if strings.Contains(service, serviceName) {
 			for _, user := range users {
 				if username == user {
 					return true, nil
