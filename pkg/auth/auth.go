@@ -56,6 +56,16 @@ func CheckUserAccessForService(ctx context.Context, username, serviceName string
 		panic(err)
 	}
 
+	for service, users := range servicesAccessList {
+		if strings.Contains(service, serviceName) {
+			for _, user := range users {
+				if username == user {
+					return true, nil
+				}
+			}
+		}
+	}
+
 	if _, ok := servicesAccessList[serviceName]; !ok {
 		logger.Error(
 			"%s doesn't exist in service list, please get it added in %s in keyhouse repository if required.",
@@ -65,16 +75,6 @@ func CheckUserAccessForService(ctx context.Context, username, serviceName string
 
 		printAllowedServices()
 		return false, nil
-	}
-
-	for service, users := range servicesAccessList {
-		if strings.Contains(service, serviceName) {
-			for _, user := range users {
-				if username == user {
-					return true, nil
-				}
-			}
-		}
 	}
 
 	return false, nil
