@@ -19,7 +19,9 @@ func printAllowedServices() {
 
 	i := 0
 	for service := range servicesAccessList {
-		services[i] = logger.Bold(service)
+		if service != "*" {
+			services[i] = logger.Bold(service)
+		}
 		i++
 	}
 
@@ -57,7 +59,7 @@ func CheckUserAccessForService(ctx context.Context, username, serviceName string
 	}
 
 	for service, users := range servicesAccessList {
-		if strings.Contains(service, serviceName) {
+		if strings.Contains(service, serviceName) || service == "*" {
 			for _, user := range users {
 				if username == user {
 					return true, nil
