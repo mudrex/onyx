@@ -15,6 +15,7 @@ var ecsClusterName string
 var ecsServiceName string
 var tagToRevertTo string
 var revisionsToLookback int32
+var ecsContainerShell string
 var tailLogs int32
 
 var ecsCommand = &cobra.Command{
@@ -47,7 +48,7 @@ var ecsDescribeCommand = &cobra.Command{
 }
 
 var ecsSpawnShellCommand = &cobra.Command{
-	Use:   "spawn-shell --cluster <cluster-name> --service <service-name>",
+	Use:   "spawn-shell --cluster <cluster-name> --service <service-name> [--shell=<shell-name>]",
 	Short: "SpawnShells the given service.",
 	Long:  `For the given cluster and service name pair, onyx spawns the docker shell bypassing the host instance's shell`,
 	Args:  cobra.NoArgs,
@@ -70,7 +71,15 @@ var ecsSpawnShellCommand = &cobra.Command{
 			return errors.New("empty service name")
 		}
 
-		return ecs.SpawnServiceShell(ctx, cfg, ecsServiceName, ecsClusterName)
+		if ecsContainerShell == "" {
+			ecsContainerShell = "bash"
+		}
+
+		if ecsContainerShell != "bash" && ecsContainerShell != "sh" {
+			return errors.New("invalid shell. Allowed bash or sh")
+		}
+
+		return ecs.SpawnServiceShell(ctx, cfg, ecsServiceName, ecsClusterName, ecsContainerShell)
 	},
 }
 
@@ -188,6 +197,7 @@ func init() {
 
 	ecsSpawnShellCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsSpawnShellCommand.Flags().StringVarP(&ecsServiceName, "service", "s", "", "Filters tasks belonging to the service name provided. Returns the best matching service tasks. (required)")
+	ecsSpawnShellCommand.Flags().StringVarP(&ecsContainerShell, "shell", "", "", "Shell to use (bash or sh)")
 	ecsSpawnShellCommand.MarkFlagRequired("service")
 	ecsSpawnShellCommand.MarkFlagRequired("cluster")
 

@@ -19,7 +19,7 @@ import (
 	"github.com/mudrex/onyx/pkg/utils"
 )
 
-func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName string) error {
+func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName, shell string) error {
 	userUID := syscall.Getuid()
 
 	err := syscall.Setuid(0)
@@ -42,7 +42,7 @@ func spawnRemoteDockerContainerShell(ctx context.Context, host, serviceName stri
 		fmt.Sprintf("[ecs/spawn-shell] *%s* logged in to _%s_ for %s", utils.GetUser(), host, serviceName),
 	)
 
-	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker exec -it %s bash'", config.Config.PrivateKey, host, containerID)
+	sshCmdDockerShell := fmt.Sprintf("sudo ssh -t -i %s -o StrictHostKeyChecking=no ec2-user@%s 'docker exec -it %s %s'", config.Config.PrivateKey, host, containerID, shell)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
 	out1.Stdin = os.Stdin
 	out1.Stdout = os.Stdout
@@ -87,7 +87,7 @@ func getServicesHosts(ctx context.Context, cfg aws.Config, serviceName, clusterN
 	return servicesHosts, nil
 }
 
-func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, clusterName string) error {
+func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, clusterName, shell string) error {
 	currUser, err := user.Current()
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, cluster
 
 	if len(servicesHosts) == 1 {
 		for _, hosts := range servicesHosts {
-			return spawnRemoteDockerContainerShell(ctx, hosts[0], serviceName)
+			return spawnRemoteDockerContainerShell(ctx, hosts[0], serviceName, shell)
 		}
 	}
 
@@ -125,7 +125,7 @@ func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, cluster
 		return err
 	}
 
-	return spawnRemoteDockerContainerShell(ctx, host, serviceName)
+	return spawnRemoteDockerContainerShell(ctx, host, serviceName, shell)
 }
 
 func getServiceHost(servicesHosts map[string][]string) (string, error) {
