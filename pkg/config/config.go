@@ -10,6 +10,7 @@ import (
 
 type C struct {
 	Region                  string `json:"region"`
+	Environment             string `json:"environment"`
 	SlackHook               string `json:"slack_hook"`
 	VPCCidr                 string `json:"vpc_cidr"`
 	PrivateKey              string `json:"private_key"`
@@ -32,6 +33,7 @@ func Default() *C {
 		VPCCidr:              "10.10.0.0/16",
 		HostsAccessConfig:    "/opt/gatekeeper/hosts-access.json",
 		ServicesAccessConfig: "/opt/gatekeeper/services-access.json",
+		Environment:          "staging",
 	}
 }
 
@@ -83,6 +85,8 @@ func SetConfigKey(key, value string) error {
 
 	case "region":
 		loadedConfig.Region = value
+	case "environment":
+		loadedConfig.Environment = value
 	case "slack_hook":
 		loadedConfig.SlackHook = value
 	case "vpc_cidr":

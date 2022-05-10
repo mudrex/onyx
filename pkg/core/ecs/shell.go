@@ -88,6 +88,11 @@ func getServicesHosts(ctx context.Context, cfg aws.Config, serviceName, clusterN
 }
 
 func SpawnServiceShell(ctx context.Context, cfg aws.Config, serviceName, clusterName, shell string) error {
+	if !strings.Contains(clusterName, config.Config.Environment) {
+		logger.Error("You are in %s environment but you are trying to access %s environment", logger.Underline(config.Config.Environment), clusterName)
+		return nil
+	}
+
 	currUser, err := user.Current()
 	if err != nil {
 		return err
@@ -193,6 +198,11 @@ func tailContainerLogs(ctx context.Context, host, serviceName string, tailLogs i
 }
 
 func TailContainerLogs(ctx context.Context, cfg aws.Config, serviceName, clusterName string, tailLogs int32) error {
+	if !strings.Contains(clusterName, config.Config.Environment) {
+		logger.Error("You are in %s environment but you are trying to access %s environment", logger.Underline(config.Config.Environment), clusterName)
+		return nil
+	}
+
 	currUser, err := user.Current()
 	if err != nil {
 		return err
