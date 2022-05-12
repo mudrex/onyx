@@ -94,8 +94,7 @@ func CheckUserAccessForHostShell(ctx context.Context, username, host string) (bo
 	if _, ok := hostAccessList[host]; !ok {
 		logger.Warn("%s doesn't exist in allowed list. Please get it added.", host)
 
-		// TODO: temp allow access to all hosts except a few critical
-		return true, nil
+		return false, nil
 	}
 
 	if allAccess, ok := hostAccessList[host]["all"]; ok {
