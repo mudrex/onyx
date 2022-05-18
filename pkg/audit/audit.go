@@ -68,7 +68,8 @@ func uploadToS3(ctx context.Context, body io.Reader) bool {
 		Bucket: aws.String(configPkg.Config.AuditBucket),
 		Key: aws.String(
 			fmt.Sprintf(
-				"onyx/logs/dt=%s/hour=%s/archive_log-%s",
+				"onyx/logs/%s/dt=%s/hour=%s/archive_log-%s",
+				configPkg.Config.Environment,
 				now.Format("20060102"),
 				now.Format("15"),
 				now.Format("04:05"),
