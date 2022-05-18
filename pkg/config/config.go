@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
-	"github.com/mudrex/onyx/pkg/utils"
 )
 
 type C struct {
@@ -20,6 +20,8 @@ type C struct {
 	RDSServicesAccessConfig string `json:"rds_services_access_config"`
 	RDSCriticalTablesConfig string `json:"rds_critical_tables_config"`
 	RDSSecretName           string `json:"rds_secret_name"`
+	AuditBucket             string `json:"audit_bucket"`
+	LocalLogFilename        string `json:"local_log_filename"`
 }
 
 var Config C
@@ -34,6 +36,7 @@ func Default() *C {
 		HostsAccessConfig:    "/opt/gatekeeper/hosts-access.json",
 		ServicesAccessConfig: "/opt/gatekeeper/services-access.json",
 		Environment:          "staging",
+		LocalLogFilename:     "/opt/gatekeeper/audit_log",
 	}
 }
 
@@ -47,11 +50,11 @@ func (c *C) ToString() string {
 }
 
 func LoadConfig() error {
-	if !utils.FileExists(Filename) {
+	if !filesystem.FileExists(Filename) {
 		logger.Fatal("%s doesn't exist. Please create one with %s", logger.Bold(Filename), logger.Underline("onyx init"))
 	}
 
-	data, err := utils.ReadFile(Filename)
+	data, err := filesystem.ReadFile(Filename)
 	if err != nil {
 		return err
 	}
@@ -69,7 +72,7 @@ func GetRegion() string {
 }
 
 func SetConfigKey(key, value string) error {
-	configData, err := utils.ReadFile(Filename)
+	configData, err := filesystem.ReadFile(Filename)
 	if err != nil {
 		return err
 	}
@@ -105,6 +108,10 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.RDSServicesAccessConfig = value
 	case "rds_critical_tables_config":
 		loadedConfig.RDSCriticalTablesConfig = value
+	case "audit_bucket":
+		loadedConfig.AuditBucket = value
+	case "local_log_filename":
+		loadedConfig.LocalLogFilename = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}
@@ -114,5 +121,5 @@ func SetConfigKey(key, value string) error {
 		return err
 	}
 
-	return utils.CreateFileWithData(Filename, string(finalConfig))
+	return filesystem.CreateFileWithData(Filename, string(finalConfig))
 }
