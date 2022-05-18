@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/core/secretsmanager"
+	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/notifier"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -43,7 +44,7 @@ func RefreshServicesAccess(ctx context.Context, cfg aws.Config) error {
 }
 
 func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) error {
-	configData, err := utils.ReadFile(accessConfig)
+	configData, err := filesystem.ReadFile(accessConfig)
 	if err != nil {
 		return err
 	}
@@ -57,8 +58,8 @@ func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) err
 
 	// Load lock file
 	var configLock ConfigLock
-	if utils.FileExists(accessConfig + ".lock") {
-		configLockData, err := utils.ReadFile(accessConfig + ".lock")
+	if filesystem.FileExists(accessConfig + ".lock") {
+		configLockData, err := filesystem.ReadFile(accessConfig + ".lock")
 		if err != nil {
 			return err
 		}
@@ -80,9 +81,9 @@ func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) err
 	}
 
 	// Load critical table list
-	if utils.FileExists(config.Config.RDSCriticalTablesConfig) {
+	if filesystem.FileExists(config.Config.RDSCriticalTablesConfig) {
 		var criticalTablesList []string
-		criticalTablesListData, err := utils.ReadFile(config.Config.RDSCriticalTablesConfig)
+		criticalTablesListData, err := filesystem.ReadFile(config.Config.RDSCriticalTablesConfig)
 		if err != nil {
 			return err
 		}
@@ -125,7 +126,7 @@ func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) err
 		return err
 	}
 
-	utils.CreateFileWithData(accessConfig, string(loadedConfigBytes))
+	filesystem.CreateFileWithData(accessConfig, string(loadedConfigBytes))
 
 	configLock.LockedConfig = loadedConfig
 	configLock.Checksum = utils.GetSHA512Checksum(loadedConfigBytes)
@@ -136,7 +137,7 @@ func refreshAccess(ctx context.Context, cfg aws.Config, accessConfig string) err
 		return err
 	}
 
-	return utils.CreateFileWithData(accessConfig+".lock", string(loadedConfigLockBytes))
+	return filesystem.CreateFileWithData(accessConfig+".lock", string(loadedConfigLockBytes))
 }
 
 func run(

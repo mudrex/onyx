@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/mudrex/onyx/pkg/config"
+	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
-	"github.com/mudrex/onyx/pkg/utils"
 )
 
 func change(ctx context.Context) error {
@@ -13,8 +13,8 @@ func change(ctx context.Context) error {
 }
 
 func Init(ctx context.Context, force bool) error {
-	if !utils.FileExists(config.Filename) {
-		err := utils.CreateFileWithData(config.Filename, config.Config.ToString())
+	if !filesystem.FileExists(config.Filename) {
+		err := filesystem.CreateFileWithData(config.Filename, config.Config.ToString())
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func Init(ctx context.Context, force bool) error {
 	if force {
 		logger.Info("Overwriting %s file.", logger.Underline(config.Filename))
 
-		err := utils.CreateFileWithData(config.Filename, config.Default().ToString())
+		err := filesystem.CreateFileWithData(config.Filename, config.Default().ToString())
 		if err != nil {
 			return err
 		}

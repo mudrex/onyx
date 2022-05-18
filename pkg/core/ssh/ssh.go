@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/mudrex/onyx/pkg/audit"
 	"github.com/mudrex/onyx/pkg/auth"
 	"github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
@@ -31,10 +32,12 @@ func Do(ctx context.Context, userHost string) error {
 		}
 
 		if !cidr.Contains(net.ParseIP(host)) {
+			log := fmt.Sprintf(":bangbang: [ssh/do] *%s* attempted ssh via public ip: _%s_", username, host)
 			notifier.Notify(
 				config.Config.SlackHook,
-				fmt.Sprintf(":bangbang: [ssh/do] *%s* attempted ssh via public ip: _%s_", username, host),
+				log,
 			)
+			audit.Log(ctx, log)
 
 			return fmt.Errorf("%s is not a private IP. Aborting. %s", logger.Underline(host), logger.Red("This act will be reported"))
 		}
@@ -64,10 +67,13 @@ func Do(ctx context.Context, userHost string) error {
 
 	logger.Info("Spawning shell for %s", logger.Underline(userHost))
 
+	log := fmt.Sprintf("[ssh/do] *%s* logged in to _%s_", username, userHost)
 	notifier.Notify(
 		config.Config.SlackHook,
-		fmt.Sprintf("[ssh/do] *%s* logged in to _%s_", username, userHost),
+		log,
 	)
+
+	audit.Log(ctx, log)
 
 	sshCmdDockerShell := fmt.Sprintf("ssh -t -i %s %s", config.Config.PrivateKey, userHost)
 	out1 := exec.Command("bash", "-c", sshCmdDockerShell)
