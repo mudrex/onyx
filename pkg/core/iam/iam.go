@@ -9,7 +9,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	configPkg "github.com/mudrex/onyx/pkg/config"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -167,6 +170,60 @@ func CheckExpiredAccessKeys() error {
 
 	if len(dormantAccessKeys) > 0 {
 		fmt.Println("Dormant access keys:", strings.Join(dormantAccessKeys, ", "))
+	}
+
+	return nil
+}
+
+func DuplicateSecret() error {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+	ctx := context.Background()
+	secretsmanagerHandler := secretsmanager.NewFromConfig(cfg)
+
+	secretName := "-"
+	finalSecretName := "-"
+
+	output, err := secretsmanagerHandler.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretName),
+	})
+	if err != nil {
+		return err
+	}
+
+	do, err := secretsmanagerHandler.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
+		SecretId: aws.String(secretName),
+	})
+	if err != nil {
+		return err
+	}
+
+	tags := []types.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: aws.String(finalSecretName),
+		},
+	}
+
+	for _, tag := range do.Tags {
+		if aws.ToString(tag.Key) != "Name" {
+			tags = append(tags, tag)
+		}
+	}
+
+	_, err = secretsmanagerHandler.CreateSecret(
+		ctx,
+		&secretsmanager.CreateSecretInput{
+			Name:         aws.String(finalSecretName),
+			Description:  do.Description,
+			SecretString: output.SecretString,
+			Tags:         tags,
+		},
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil

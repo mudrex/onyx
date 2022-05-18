@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.2.2
 	github.com/aws/aws-sdk-go-v2/service/iam v1.3.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.26.10
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.15.0
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.13.0
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.14.1
 	github.com/fatih/color v1.10.0
 	github.com/spf13/cobra v1.1.3
