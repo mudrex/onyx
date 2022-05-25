@@ -25,7 +25,7 @@ func init() {
 		configCommand,
 		ecrCommand,
 		rdsCommand,
-		jenkinsCommand,
+		optimusCommand,
 	)
 }
 
