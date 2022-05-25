@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha512"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -202,4 +203,12 @@ func GetDifferenceBetweenStringArrays(a, b []string) []string {
 	}
 
 	return diff
+}
+
+func GetSidFromUsername(username string) (string, error) {
+	s := strings.Split(username, ".")
+	if len(s) == 0 {
+		return "", errors.New("resultant sid is empty")
+	}
+	return s[0], nil
 }
