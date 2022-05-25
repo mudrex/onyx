@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha512"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -168,4 +169,46 @@ func GetRandomStringWithSymbols(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func GetIntersectionBetweenStringArrays(a, b []string) []string {
+	var diff []string
+
+	m := make(map[string]bool)
+
+	for _, item := range a {
+		m[item] = true
+	}
+
+	for _, item := range b {
+		if _, ok := m[item]; ok {
+			diff = append(diff, item)
+		}
+	}
+	return diff
+}
+
+func GetDifferenceBetweenStringArrays(a, b []string) []string {
+	var diff []string
+
+	m := make(map[string]bool)
+	for _, item := range b {
+		m[item] = true
+	}
+
+	for _, item := range a {
+		if _, exists := m[item]; !exists {
+			diff = append(diff, item)
+		}
+	}
+
+	return diff
+}
+
+func GetSidFromUsername(username string) (string, error) {
+	s := strings.Split(username, ".")
+	if len(s) == 0 {
+		return "", errors.New("resultant sid is empty")
+	}
+	return s[0], nil
 }
