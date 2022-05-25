@@ -22,6 +22,9 @@ type C struct {
 	RDSSecretName           string `json:"rds_secret_name"`
 	AuditBucket             string `json:"audit_bucket"`
 	LocalLogFilename        string `json:"local_log_filename"`
+	JenkinsSecretName       string `json:"jenkins_secret_name"`
+	JenkinsUsersConfig      string `json:"jenkins_users_config"`
+	JenkinsRolesConfig      string `json:"jenkins_roles_config"`
 }
 
 var Config C
@@ -112,6 +115,8 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.AuditBucket = value
 	case "local_log_filename":
 		loadedConfig.LocalLogFilename = value
+	case "jenkins_secret_name":
+		loadedConfig.JenkinsSecretName = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}
