@@ -13,7 +13,7 @@ import (
 
 var optimusCommand = &cobra.Command{
 	Use:   "optimus",
-	Short: "Access control actions to be performed on Jenkins",
+	Short: "Access control actions to be performed on Optimus",
 }
 
 var optimusRefreshCommand = &cobra.Command{
