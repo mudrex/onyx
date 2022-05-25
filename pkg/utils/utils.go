@@ -169,3 +169,37 @@ func GetRandomStringWithSymbols(n int) string {
 	}
 	return string(b)
 }
+
+func GetIntersectionBetweenStringArrays(a, b []string) []string {
+	var diff []string
+
+	m := make(map[string]bool)
+
+	for _, item := range a {
+		m[item] = true
+	}
+
+	for _, item := range b {
+		if _, ok := m[item]; ok {
+			diff = append(diff, item)
+		}
+	}
+	return diff
+}
+
+func GetDifferenceBetweenStringArrays(a, b []string) []string {
+	var diff []string
+
+	m := make(map[string]bool)
+	for _, item := range b {
+		m[item] = true
+	}
+
+	for _, item := range a {
+		if _, exists := m[item]; !exists {
+			diff = append(diff, item)
+		}
+	}
+
+	return diff
+}
