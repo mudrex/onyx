@@ -116,15 +116,13 @@ func refreshUsers(
 	lockedConfig Config,
 	secret OptimusSecret,
 ) error {
-	add := getDiff(currConfig, lockedConfig)
-	errAdd := addUsers(add, secret)
+	errAdd := addUsers(getDiff(currConfig, lockedConfig), secret)
 	if errAdd != nil {
 		logger.Error("Unable to add roles to users")
 		return errAdd
 	}
 
-	remove := getDiff(lockedConfig, currConfig)
-	errRemove := removeUsers(remove, secret)
+	errRemove := removeUsers(getDiff(lockedConfig, currConfig), secret)
 	if errRemove != nil {
 		logger.Error("Unable to remove roles from users")
 		return errRemove
