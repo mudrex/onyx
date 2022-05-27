@@ -228,7 +228,7 @@ func GetIPsFromStrings(ips []string) ([]net.IP, error) {
 	return ans, nil
 }
 
-func GetDNSsFromStrings(names []string) ([]string, error) {
+func GetDNSListFromStrings(names []string) ([]string, error) {
 	dnsRegex, _ := regexp.Compile(`^(\*\.)*?([\w\d]+\.)+[\w\d]+$`)
 	var ans []string
 	for _, name := range names {
