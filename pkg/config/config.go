@@ -26,6 +26,13 @@ type C struct {
 	OptimusUsersConfig      string `json:"optimus_users_config"`
 	OptimusRolesConfig      string `json:"optimus_roles_config"`
 	CASecretName            string `json:"ca_secret_name"`
+	CertificateSubject      struct {
+		Country            string `json:"country"`
+		Province           string `json:"province"`
+		Locality           string `json:"locality"`
+		Organization       string `json:"organization"`
+		OrganizationalUnit string `json:"organization_unit"`
+	} `json:"certificate_subject"`
 }
 
 var Config C
