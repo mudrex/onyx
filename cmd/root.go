@@ -26,6 +26,7 @@ func init() {
 		ecrCommand,
 		rdsCommand,
 		optimusCommand,
+		pkiCommand,
 	)
 }
 
