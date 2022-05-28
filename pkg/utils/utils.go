@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/user"
@@ -211,4 +212,32 @@ func GetSidFromUsername(username string) (string, error) {
 		return "", errors.New("resultant sid is empty")
 	}
 	return s[0], nil
+}
+
+func GetIPsFromStrings(ips []string) ([]net.IP, error) {
+	var ans []net.IP
+
+	for _, ip := range ips {
+		parsedIP := net.ParseIP(ip)
+		if parsedIP == nil {
+			return []net.IP{}, errors.New(ip + " is not a valid IP")
+		}
+		ans = append(ans, parsedIP)
+	}
+
+	return ans, nil
+}
+
+func GetDNSListFromStrings(names []string) ([]string, error) {
+	dnsRegex, _ := regexp.Compile(`^(\*\.)*?([\w\d]+\.)+[\w\d]+$`)
+	var ans []string
+	for _, name := range names {
+		isMatch := dnsRegex.MatchString(name)
+		if !isMatch {
+			return []string{}, errors.New(name + "is not a valid DNS name")
+		}
+		ans = append(ans, name)
+	}
+
+	return ans, nil
 }
