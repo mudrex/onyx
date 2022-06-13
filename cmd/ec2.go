@@ -22,6 +22,9 @@ var securityGroupID string
 var securityGroupFilter []string
 var securityGroupSkipChoice bool
 
+var instanceID string
+var instanceTagName string
+
 var ec2Command = &cobra.Command{
 	Use:   "ec2",
 	Short: "Actions to be performed on EC2 namespace",
@@ -176,14 +179,18 @@ var ec2sgRevokeCommand = &cobra.Command{
 }
 
 var ec2StopInstanceCommand = &cobra.Command{
-	Use:   "stop <instance-id>",
-	Short: "Stops the given instance",
-	Args:  cobra.MinimumNArgs(1),
+	Use:   "stop [--id <instance-id>] [--name <tag-name>]",
+	Short: "Stops the given instance by instance id or the tagged name",
+	Args:  cobra.NoArgs,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return configPkg.LoadConfig()
 	},
-	Example: "onyx ec2 stop i-0asd68a8120u",
+	Example: "onyx ec2 stop --id i-0asd68a8120u\nonyx ec2 stop --name my-instance\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if instanceID == "" && instanceTagName == "" {
+			return errors.New("one of --id or --name has to be specified")
+		}
+
 		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
@@ -191,19 +198,23 @@ var ec2StopInstanceCommand = &cobra.Command{
 
 		ctx := context.Background()
 
-		return ec2.StopInstance(ctx, cfg, args[0])
+		return ec2.StopInstance(ctx, cfg, instanceID, instanceTagName)
 	},
 }
 
 var ec2StartInstanceCommand = &cobra.Command{
 	Use:   "start <instance-id>",
 	Short: "Starts the given instance",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.NoArgs,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return configPkg.LoadConfig()
 	},
 	Example: "onyx ec2 start i-0asd68a8120u",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if instanceID == "" && instanceTagName == "" {
+			return errors.New("one of --id or --name has to be specified")
+		}
+
 		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
 		if err != nil {
 			log.Fatalf("unable to load SDK config, %v", err)
@@ -211,7 +222,7 @@ var ec2StartInstanceCommand = &cobra.Command{
 
 		ctx := context.Background()
 
-		return ec2.StartInstance(ctx, cfg, args[0])
+		return ec2.StartInstance(ctx, cfg, instanceID, instanceTagName)
 	},
 }
 
@@ -236,4 +247,9 @@ func init() {
 	ec2sgRevokeCommand.Flags().StringVarP(&securityGroupIngressPorts, "ports", "p", "", "Ports to authorize. Allowed values 0-65536.  Accepted input: comma separated ports, example: 22, 1331.")
 	ec2sgRevokeCommand.Flags().StringSliceVarP(&securityGroupFilter, "filter", "f", []string{}, "Custom filters to filter out security groups from list. Example: name=entry or desc=load. Can be used mutiple times.")
 	ec2sgRevokeCommand.Flags().BoolVarP(&securityGroupSkipChoice, "skip-choice", "s", false, "If the choice list returns one choice, then this flag by bypasses the need to manually enter that choice and proceeds.")
+
+	ec2StartInstanceCommand.Flags().StringVarP(&instanceID, "id", "", "", "EC2 Instance ID")
+	ec2StartInstanceCommand.Flags().StringVarP(&instanceTagName, "name", "", "", "EC2 Instance tagged name")
+	ec2StopInstanceCommand.Flags().StringVarP(&instanceID, "id", "", "", "EC2 Instance ID")
+	ec2StopInstanceCommand.Flags().StringVarP(&instanceTagName, "name", "", "", "EC2 Instance tagged name")
 }
