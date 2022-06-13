@@ -39,10 +39,6 @@ func RefreshRoles(ctx context.Context, cfg aws.Config) error {
 	return refresh(ctx, cfg, config.Config.OptimusRolesConfig, "roles")
 }
 
-// func RefreshJobs(ctx context.Context, cfg aws.Config) error {
-// 	return refresh(ctx, cfg, config.Config.OptimusJobsConfig, "jobs")
-// }
-
 func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag string) error {
 	configData, err := filesystem.ReadFile(accessConfig)
 	if err != nil {
@@ -95,8 +91,6 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 
 	case "roles":
 		refreshRoles(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
-		// case "jobs":
-		// 	refreshJobs(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
 	}
 
 	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
@@ -118,22 +112,6 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 
 	return filesystem.CreateFileWithData(accessConfig+".lock", string(loadedConfigLockBytes))
 }
-
-// func refreshJobs(
-// 	ctx context.Context,
-// 	cfg aws.Config,
-// 	currConfig Config,
-// 	lockedConfig Config,
-// 	secret OptimusSecret,
-// ) error {
-// 	fmt.Print("step1")
-// 	// getDiff(currConfig, lockedConfig)
-// 	// fmt.Print("step1 done")
-// 	// fmt.Print("%+v\n", currConfig)
-// 	// fmt.Print("%+v\n", lockedConfig)
-
-// 	return nil
-// }
 
 func refreshUsers(
 	ctx context.Context,
@@ -240,7 +218,6 @@ func getDiff(config, configLock Config) Config {
 
 	for username, roles := range config {
 		diff[username] = utils.GetDiff(roles, configLock[username])
-		print(diff[username])
 	}
 
 	fmt.Println("after diff ", diff)

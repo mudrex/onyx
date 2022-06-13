@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -110,9 +109,6 @@ func refreshJobs(
 	secret OptimusSecret,
 	accessConfig string,
 ) error {
-	fmt.Println("step1")
-	// fmt.Println("Current Config", currConfig)
-	// fmt.Println("Locked Config", lockedConfig)
 	currConfigArray, err := getB64StringArray(currConfig) // re-using Config struct since the difference would be similar
 	if err != nil {
 		return err
@@ -124,6 +120,8 @@ func refreshJobs(
 	}
 
 	var jobDiff []string
+
+	// functions to get array of jobs to add to optimus
 	intersection := utils.GetIntersectionBetweenStringArrays(currConfigArray, lockedConfigArray)
 	jobDiff = utils.GetDifferenceBetweenStringArrays(currConfigArray, intersection)
 
@@ -133,13 +131,23 @@ func refreshJobs(
 		return errAdd
 	}
 
+	// functions to get array of jobs to delete from optimus
+	intersection = utils.GetIntersectionBetweenStringArrays(lockedConfigArray, currConfigArray)
+	jobDiff = utils.GetDifferenceBetweenStringArrays(lockedConfigArray, intersection)
+
+	errRemove := removeJobs(jobDiff, secret, accessConfig)
+	if errRemove != nil {
+		logger.Error("Unable to remove job")
+		return errRemove
+	}
+
 	return nil
 
 }
 
 func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
 
-	for i, b64strings := range add {
+	for _, b64strings := range add {
 
 		sDec, _ := b64.StdEncoding.DecodeString(b64strings)
 		var job Job
@@ -148,7 +156,7 @@ func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
 			logger.Error("Unable to marshall object")
 			return err
 		}
-		fmt.Println(i)
+
 		errRequest := sendJobRequest(job, secret, accessConfig)
 		if errRequest != nil {
 			logger.Error("Unable to send request")
@@ -159,22 +167,62 @@ func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
 	return nil
 }
 
+func removeJobs(remove []string, secret OptimusSecret, accessConfig string) error {
+	url := secret.Host
+	client := &http.Client{}
+
+	for _, b64strings := range remove {
+		sDec, _ := b64.StdEncoding.DecodeString(b64strings)
+		var job Job
+		err := json.Unmarshal(sDec, &job)
+		if err != nil {
+			logger.Error("Unable to marshall object")
+			return err
+		}
+
+		route := strings.FieldsFunc(job.Name, Split)
+
+		for i := 1; i < len(route); i++ {
+
+			url = url + "/job/" + route[i]
+		}
+		request, err := http.NewRequest("DELETE", url+"/", nil)
+		if err != nil {
+			logger.Error("Unable to remove job")
+			return err
+		}
+		request.SetBasicAuth(secret.Username, secret.Token)
+
+		response, err := client.Do(request)
+		if err != nil {
+			return err
+		}
+
+		if response.StatusCode == 200 {
+
+		}
+
+	}
+	return nil
+}
+
 func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 	route := strings.FieldsFunc(job.Name, Split)
-	folderXML, err := os.ReadFile("pkg/utils/folder.xml")
+	folderXMLLocation := strings.Replace(accessConfig, "jobs.json", "config/folder.xml", 1)
+	folderXML, err := filesystem.ReadFile(folderXMLLocation)
 	if err != nil {
 		return err
 	}
-	// fmt.Println("config path", accessConfig)
-	accessConfig = strings.Replace(accessConfig, "jobsv2.json", job.Config, 1)
+	accessConfig = strings.Replace(accessConfig, "jobs.json", job.Config, 1)
 	configXML, err := filesystem.ReadFile(accessConfig)
+	if err != nil {
+		return err
+	}
 
 	configXML = strings.Replace(configXML, "_INSERT_REPO_NAME_HERE_", route[len(route)-1], 1)
 
 	url := secret.Host
 	client := &http.Client{}
-
-	fmt.Println(route)
 
 	for i := 1; i < len(route); i++ {
 
@@ -195,7 +243,6 @@ func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 		request.URL.RawQuery = query.Encode()
 		request.Header.Set("Content-Type", "application/xml")
 		request.SetBasicAuth(secret.Username, secret.Token)
-		fmt.Println(i, request.URL)
 		response, err := client.Do(request)
 		if err != nil {
 			return err
