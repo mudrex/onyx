@@ -6,3 +6,4 @@ build/
 dist/
 
 audit_logs/
+.vscode/
