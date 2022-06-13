@@ -10,7 +10,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/mudrex/onyx/pkg/config"
-	"github.com/mudrex/onyx/pkg/core/secretsmanager"
 	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -38,6 +37,10 @@ func RefreshUsers(ctx context.Context, cfg aws.Config) error {
 func RefreshRoles(ctx context.Context, cfg aws.Config) error {
 	return refresh(ctx, cfg, config.Config.OptimusRolesConfig, "roles")
 }
+
+// func RefreshJobs(ctx context.Context, cfg aws.Config) error {
+// 	return refresh(ctx, cfg, config.Config.OptimusJobsConfig, "jobs")
+// }
 
 func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag string) error {
 	configData, err := filesystem.ReadFile(accessConfig)
@@ -76,17 +79,23 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 		return fmt.Errorf("optimus secret name not specified")
 	}
 
-	secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
-	err = json.Unmarshal([]byte(secretString), &optimusSecret)
-	if err != nil {
-		return err
-	}
+	// secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
+	// err = json.Unmarshal([]byte(secretString), &optimusSecret)
+	// if err != nil {
+	// 	return err
+	// }
 
 	switch flag {
 	case "users":
-		refreshUsers(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
+		err = refreshUsers(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
+		if err != nil {
+			return err
+		}
+
 	case "roles":
 		refreshRoles(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
+		// case "jobs":
+		// 	refreshJobs(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
 	}
 
 	loadedConfigBytes, err := json.MarshalIndent(loadedConfig, "", "    ")
@@ -108,6 +117,22 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 
 	return filesystem.CreateFileWithData(accessConfig+".lock", string(loadedConfigLockBytes))
 }
+
+// func refreshJobs(
+// 	ctx context.Context,
+// 	cfg aws.Config,
+// 	currConfig Config,
+// 	lockedConfig Config,
+// 	secret OptimusSecret,
+// ) error {
+// 	fmt.Print("step1")
+// 	// getDiff(currConfig, lockedConfig)
+// 	// fmt.Print("step1 done")
+// 	// fmt.Print("%+v\n", currConfig)
+// 	// fmt.Print("%+v\n", lockedConfig)
+
+// 	return nil
+// }
 
 func refreshUsers(
 	ctx context.Context,
@@ -131,9 +156,10 @@ func refreshUsers(
 }
 
 func addUsers(add Config, secret OptimusSecret) error {
+	fmt.Println("add users", add)
 	for username, roles := range add {
 		for _, role := range roles {
-			sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
+			return sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
 		}
 	}
 	return nil
@@ -142,7 +168,7 @@ func addUsers(add Config, secret OptimusSecret) error {
 func removeUsers(remove Config, secret OptimusSecret) error {
 	for username, roles := range remove {
 		for _, role := range roles {
-			sendRoleRequest("/role-strategy/strategy/unassignRole", username, role, secret)
+			return sendRoleRequest("/role-strategy/strategy/unassignRole", username, role, secret)
 		}
 	}
 	return nil
@@ -207,11 +233,16 @@ func refreshRoles(
 
 func getDiff(config, configLock Config) Config {
 	var diff Config = make(Config)
+	fmt.Println("before diff ", diff)
 
 	for username, roles := range config {
+		fmt.Println("config lock", username, configLock[username])
 		intersection := utils.GetIntersectionBetweenStringArrays(roles, configLock[username])
 		diff[username] = utils.GetDifferenceBetweenStringArrays(roles, intersection)
+		print(diff[username])
 	}
+
+	fmt.Println("after diff ", diff)
 
 	return diff
 }

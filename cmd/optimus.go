@@ -35,6 +35,8 @@ var optimusRefreshCommand = &cobra.Command{
 			return optimus.RefreshUsers(ctx, cfg)
 		} else if args[0] == "roles" {
 			return optimus.RefreshRoles(ctx, cfg)
+		} else if args[0] == "jobs" {
+			return optimus.RefreshJobs(ctx, cfg)
 		}
 
 		return errors.New("Invalid type " + args[0])
