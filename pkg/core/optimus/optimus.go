@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/mudrex/onyx/pkg/config"
+	"github.com/mudrex/onyx/pkg/core/secretsmanager"
 	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -79,11 +80,11 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 		return fmt.Errorf("optimus secret name not specified")
 	}
 
-	// secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
-	// err = json.Unmarshal([]byte(secretString), &optimusSecret)
-	// if err != nil {
-	// 	return err
-	// }
+	secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
+	err = json.Unmarshal([]byte(secretString), &optimusSecret)
+	if err != nil {
+		return err
+	}
 
 	switch flag {
 	case "users":
@@ -142,12 +143,14 @@ func refreshUsers(
 	secret OptimusSecret,
 ) error {
 	errAdd := addUsers(getDiff(currConfig, lockedConfig), secret)
+	fmt.Println("error add", errAdd)
 	if errAdd != nil {
 		logger.Error("Unable to add roles to users")
 		return errAdd
 	}
 
 	errRemove := removeUsers(getDiff(lockedConfig, currConfig), secret)
+	fmt.Print("error remove", errRemove)
 	if errRemove != nil {
 		logger.Error("Unable to remove roles from users")
 		return errRemove
@@ -236,9 +239,7 @@ func getDiff(config, configLock Config) Config {
 	fmt.Println("before diff ", diff)
 
 	for username, roles := range config {
-		fmt.Println("config lock", username, configLock[username])
-		intersection := utils.GetIntersectionBetweenStringArrays(roles, configLock[username])
-		diff[username] = utils.GetDifferenceBetweenStringArrays(roles, intersection)
+		diff[username] = utils.GetDiff(roles, configLock[username])
 		print(diff[username])
 	}
 

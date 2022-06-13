@@ -1,13 +1,18 @@
 package optimus
 
 import (
+	"bytes"
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/mudrex/onyx/pkg/config"
+	"github.com/mudrex/onyx/pkg/core/secretsmanager"
 	"github.com/mudrex/onyx/pkg/filesystem"
 	"github.com/mudrex/onyx/pkg/logger"
 	"github.com/mudrex/onyx/pkg/utils"
@@ -56,9 +61,6 @@ func refreshConfig(ctx context.Context, cfg aws.Config, accessConfig string, fla
 		}
 	}
 
-	// fmt.Println(jobConfigLock)
-	// fmt.Println(loadedJobConfig)
-
 	// Verify checksum to prevent extra work
 	if utils.GetSHA512Checksum([]byte(configData)) == jobConfigLock.Checksum {
 		logger.Info("Config is upto date! There is nothing to do!")
@@ -69,13 +71,13 @@ func refreshConfig(ctx context.Context, cfg aws.Config, accessConfig string, fla
 		return fmt.Errorf("optimus secret name not specified")
 	}
 
-	// secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
-	// err = json.Unmarshal([]byte(secretString), &optimusSecret)
-	// if err != nil {
-	// 	return err
-	// }
+	secretString := secretsmanager.GetSecret(ctx, cfg, config.Config.OptimusSecretName)
+	err = json.Unmarshal([]byte(secretString), &optimusSecret)
+	if err != nil {
+		return err
+	}
 
-	err = refreshJobs(ctx, cfg, loadedJobConfig, jobConfigLock.LockedConfig, optimusSecret)
+	err = refreshJobs(ctx, cfg, loadedJobConfig, jobConfigLock.LockedConfig, optimusSecret, accessConfig)
 	if err != nil {
 		return err
 	}
@@ -106,6 +108,7 @@ func refreshJobs(
 	currConfig JobConfig,
 	lockedConfig JobConfig,
 	secret OptimusSecret,
+	accessConfig string,
 ) error {
 	fmt.Println("step1")
 	// fmt.Println("Current Config", currConfig)
@@ -115,42 +118,101 @@ func refreshJobs(
 		return err
 	}
 
-	fmt.Println(currConfigArray)
+	lockedConfigArray, err := getB64StringArray(lockedConfig)
+	if err != nil {
+		return err
+	}
 
-	// var lock Config
-	// fmt.Println(getDiff(currConfig, lockedConfig), secret)
+	var jobDiff []string
+	intersection := utils.GetIntersectionBetweenStringArrays(currConfigArray, lockedConfigArray)
+	jobDiff = utils.GetDifferenceBetweenStringArrays(currConfigArray, intersection)
 
-	// for _, job := range currConfig["jobs"] {
+	errAdd := addJobs(jobDiff, secret, accessConfig)
+	if errAdd != nil {
+		logger.Error("Unable to add job")
+		return errAdd
+	}
 
-	// 	j, err := json.Marshal(job)
-	// 	sEnc := b64.StdEncoding.EncodeToString(j)
-
-	// 	b64array = append(b64array, sEnc)
-	// 	// fmt.Printf("%T", j)
-
-	// 	if err != nil {
-	// 		return fmt.Errorf("unable to update jobs config file")
-	// 	}
-
-	// 	// print(j)
-	// }
-	// errAdd := addJobs(getDiff(currConfig, lockedConfig), secret)
-	// if errAdd != nil {
-	// 	logger.Error("Unable to add jobs to optimus")
-	// 	return errAdd
-	// }
-
-	// errRemove := removeJobs(getDiff(lockedConfig, currConfig), secret)
-	// if errRemove != nil {
-	// 	logger.Error("Unable to remove roles from users")
-	// 	return errRemove
-	// }
-
-	// getDiff(currConfig, lockedConfig)
-	// fmt.Print("step1 done")
-	// fmt.Print("%+v\n", currConfig)
-	// fmt.Print("%+v\n", lockedConfig)
 	return nil
+
+}
+
+func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
+
+	for i, b64strings := range add {
+
+		sDec, _ := b64.StdEncoding.DecodeString(b64strings)
+		var job Job
+		err := json.Unmarshal(sDec, &job)
+		if err != nil {
+			logger.Error("Unable to marshall object")
+			return err
+		}
+		fmt.Println(i)
+		errRequest := sendJobRequest(job, secret, accessConfig)
+		if errRequest != nil {
+			logger.Error("Unable to send request")
+			return errRequest
+		}
+	}
+
+	return nil
+}
+
+func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
+	route := strings.FieldsFunc(job.Name, Split)
+	folderXML, err := os.ReadFile("pkg/utils/folder.xml")
+	if err != nil {
+		return err
+	}
+	// fmt.Println("config path", accessConfig)
+	accessConfig = strings.Replace(accessConfig, "jobsv2.json", job.Config, 1)
+	configXML, err := filesystem.ReadFile(accessConfig)
+
+	configXML = strings.Replace(configXML, "_INSERT_REPO_NAME_HERE_", route[len(route)-1], 1)
+
+	url := secret.Host
+	client := &http.Client{}
+
+	fmt.Println(route)
+
+	for i := 1; i < len(route); i++ {
+
+		url = url + "/createItem"
+		var xml_payload = new(bytes.Buffer)
+		if i == len(route)-1 {
+			xml_payload = bytes.NewBuffer([]byte(configXML))
+		} else {
+			xml_payload = bytes.NewBuffer([]byte(folderXML))
+		}
+		request, err := http.NewRequest("POST", url, xml_payload)
+		if err != nil {
+			logger.Error("Unable to create url")
+			return err
+		}
+		query := request.URL.Query()
+		query.Add("name", route[i])
+		request.URL.RawQuery = query.Encode()
+		request.Header.Set("Content-Type", "application/xml")
+		request.SetBasicAuth(secret.Username, secret.Token)
+		fmt.Println(i, request.URL)
+		response, err := client.Do(request)
+		if err != nil {
+			return err
+		}
+
+		print(response.StatusCode)
+
+		url = strings.Replace(url, "/createItem", "/job/"+route[i], 1)
+
+	}
+
+	return nil
+
+}
+
+func Split(r rune) bool {
+	return r == '/'
 }
 
 func getB64StringArray(config JobConfig) ([]string, error) {
@@ -167,120 +229,5 @@ func getB64StringArray(config JobConfig) ([]string, error) {
 		array = append(array, sEnc)
 		// print(j)
 	}
-	// fmt.Println(array)
 	return array, nil
 }
-
-// func addJobs(add Job, secret) error {
-
-// }
-
-// func refreshUsers(
-// 	ctx context.Context,
-// 	cfg aws.Config,
-// 	currConfig Config,
-// 	lockedConfig Config,
-// 	secret OptimusSecret,
-// ) error {
-// 	errAdd := addUsers(getDiff(currConfig, lockedConfig), secret)
-// 	if errAdd != nil {
-// 		logger.Error("Unable to add roles to users")
-// 		return errAdd
-// 	}
-
-// 	errRemove := removeUsers(getDiff(lockedConfig, currConfig), secret)
-// 	if errRemove != nil {
-// 		logger.Error("Unable to remove roles from users")
-// 		return errRemove
-// 	}
-// 	return nil
-// }
-
-// func addUsers(add Config, secret OptimusSecret) error {
-// 	for username, roles := range add {
-// 		for _, role := range roles {
-// 			return sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func removeUsers(remove Config, secret OptimusSecret) error {
-// 	for username, roles := range remove {
-// 		for _, role := range roles {
-// 			return sendRoleRequest("/role-strategy/strategy/unassignRole", username, role, secret)
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func sendRoleRequest(uri string, username string, role string, secret OptimusSecret) error {
-// 	sid, err := utils.GetSidFromUsername(username)
-// 	if err != nil {
-// 		logger.Error("Unable to get sid from username %s", username)
-// 		return err
-// 	}
-
-// 	// Sanitize URL
-// 	url, err := url.Parse(secret.Host + uri)
-// 	if err != nil {
-// 		logger.Error("Unable to create url with host %s and uri %s", secret.Host, uri)
-// 		return err
-// 	}
-
-// 	// Create HTTP Request
-// 	client := &http.Client{}
-// 	request, err := http.NewRequest("POST", url.String(), nil)
-// 	if err != nil {
-// 		logger.Error("Unable to create request with url %s", url.String())
-// 		return err
-// 	}
-// 	request.SetBasicAuth(secret.Username, secret.Token)
-// 	query := request.URL.Query()
-// 	query.Add("type", "globalRoles")
-// 	query.Add("roleName", role)
-// 	query.Add("sid", sid)
-// 	request.URL.RawQuery = query.Encode()
-// 	logger.Info("(%s) Running for username: %s, sid: %s | %s", role, username, sid, request.URL.String())
-
-// 	// Send HTTP request
-// 	response, err := client.Do(request)
-
-// 	if err != nil {
-// 		logger.Error("Unable to add/remove role %s to/from user %s", role, username)
-// 		return err
-// 	}
-
-// 	// Check for response code other than 200
-// 	if response.StatusCode != 200 {
-// 		logger.Error("Request failed with status code %s", response.Status)
-// 		return errors.New("request failed with status code %s")
-// 	}
-
-// 	return nil
-// }
-
-// func refreshRoles(
-// 	ctx context.Context,
-// 	cfg aws.Config,
-// 	currConfig Config,
-// 	lockedConfig Config,
-// 	secret OptimusSecret,
-// ) error {
-// 	logger.Info("Coming Soon!")
-// 	return nil
-// }
-
-// func getDiff(config, configLock Config) Config {
-// 	var diff Config = make(Config)
-// 	fmt.Println(diff)
-
-// 	for username, roles := range config {
-// 		intersection := utils.GetIntersectionBetweenStringArrays(roles, configLock[username])
-// 		diff[username] = utils.GetDifferenceBetweenStringArrays(roles, intersection)
-// 	}
-
-// 	fmt.Println("After diff", diff)
-
-// 	return diff
-// }
