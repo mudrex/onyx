@@ -25,6 +25,7 @@ type C struct {
 	OptimusSecretName       string `json:"optimus_secret_name"`
 	OptimusUsersConfig      string `json:"optimus_users_config"`
 	OptimusRolesConfig      string `json:"optimus_roles_config"`
+	OptimusJobsConfig		string `json:"optimus_jobs_config"`
 	CASecretName            string `json:"ca_secret_name"`
 	CertificateSubject      struct {
 		Country            string `json:"country"`
