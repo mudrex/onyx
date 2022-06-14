@@ -121,14 +121,12 @@ func refreshUsers(
 	secret OptimusSecret,
 ) error {
 	errAdd := addUsers(getDiff(currConfig, lockedConfig), secret)
-	fmt.Println("error add", errAdd)
 	if errAdd != nil {
 		logger.Error("Unable to add roles to users")
 		return errAdd
 	}
 
 	errRemove := removeUsers(getDiff(lockedConfig, currConfig), secret)
-	fmt.Print("error remove", errRemove)
 	if errRemove != nil {
 		logger.Error("Unable to remove roles from users")
 		return errRemove
@@ -137,7 +135,6 @@ func refreshUsers(
 }
 
 func addUsers(add Config, secret OptimusSecret) error {
-	fmt.Println("add users", add)
 	for username, roles := range add {
 		for _, role := range roles {
 			return sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
@@ -214,13 +211,9 @@ func refreshRoles(
 
 func getDiff(config, configLock Config) Config {
 	var diff Config = make(Config)
-	fmt.Println("before diff ", diff)
-
 	for username, roles := range config {
 		diff[username] = utils.GetDiff(roles, configLock[username])
 	}
-
-	fmt.Println("after diff ", diff)
 
 	return diff
 }

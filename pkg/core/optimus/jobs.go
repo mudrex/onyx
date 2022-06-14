@@ -5,6 +5,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -168,10 +169,10 @@ func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
 }
 
 func removeJobs(remove []string, secret OptimusSecret, accessConfig string) error {
-	url := secret.Host
 	client := &http.Client{}
 
 	for _, b64strings := range remove {
+		url := secret.Host
 		sDec, _ := b64.StdEncoding.DecodeString(b64strings)
 		var job Job
 		err := json.Unmarshal(sDec, &job)
@@ -198,8 +199,12 @@ func removeJobs(remove []string, secret OptimusSecret, accessConfig string) erro
 			return err
 		}
 
-		if response.StatusCode == 200 {
-
+		switch response.StatusCode {
+		case 204:
+			fmt.Println("[remove] ", response.StatusCode, job.Name+" removed successfully")
+		default:
+			fmt.Println("[remove] ", response.StatusCode, "Unable to remove "+job.Name)
+			return errors.New("unable to remove job")
 		}
 
 	}
@@ -248,10 +253,19 @@ func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 			return err
 		}
 
-		print(response.StatusCode)
+		if i == len(route)-1 {
+			switch response.StatusCode {
+			case 200:
+				fmt.Println("[add] ", response.StatusCode, job.Name+" added successfully")
+			case 400:
+				fmt.Println("[add] ", response.StatusCode, job.Name+" already exists")
+			default:
+				fmt.Println("[add]", response.StatusCode, "Error adding "+job.Name)
+				return errors.New("unable to add job")
+			}
+		}
 
 		url = strings.Replace(url, "/createItem", "/job/"+route[i], 1)
-
 	}
 
 	return nil

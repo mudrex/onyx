@@ -244,10 +244,7 @@ func GetDNSListFromStrings(names []string) ([]string, error) {
 
 func GetDiff(a, b []string) []string {
 	var diff []string
-	fmt.Println("before diff ", diff)
 	intersection := GetIntersectionBetweenStringArrays(a, b)
 	diff = GetDifferenceBetweenStringArrays(a, intersection)
-	fmt.Println("after diff ", diff)
-
 	return diff
 }
