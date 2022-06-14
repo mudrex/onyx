@@ -163,6 +163,7 @@ func addJobs(add []string, secret OptimusSecret, accessConfig string) error {
 			logger.Error("Unable to send request")
 			return errRequest
 		}
+
 	}
 
 	return nil
@@ -218,8 +219,8 @@ func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 	if err != nil {
 		return err
 	}
-	accessConfig = strings.Replace(accessConfig, "jobs.json", job.Config, 1)
-	configXML, err := filesystem.ReadFile(accessConfig)
+	jobsConfig := strings.Replace(accessConfig, "jobs.json", job.Config, 1)
+	configXML, err := filesystem.ReadFile(jobsConfig)
 	if err != nil {
 		return err
 	}
@@ -267,7 +268,6 @@ func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 
 		url = strings.Replace(url, "/createItem", "/job/"+route[i], 1)
 	}
-
 	return nil
 
 }
@@ -288,7 +288,6 @@ func getB64StringArray(config JobConfig) ([]string, error) {
 		sEnc := b64.StdEncoding.EncodeToString(j)
 
 		array = append(array, sEnc)
-		// print(j)
 	}
 	return array, nil
 }
