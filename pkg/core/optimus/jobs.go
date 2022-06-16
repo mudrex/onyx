@@ -21,6 +21,7 @@ import (
 type Job struct {
 	Name   string `json:"name"`
 	Config string `json:"config"`
+	Repo   string `json:"repository"`
 }
 
 type JobConfig map[string][]Job
@@ -225,7 +226,8 @@ func sendJobRequest(job Job, secret OptimusSecret, accessConfig string) error {
 		return err
 	}
 
-	configXML = strings.Replace(configXML, "_INSERT_REPO_NAME_HERE_", route[len(route)-1], 1)
+	configXML = strings.Replace(configXML, "_INSERT_PIPELINE_NAME_HERE_", route[len(route)-1], 1)
+	configXML = strings.Replace(configXML, "_INSERT_REPO_NAME_HERE_", job.Repo, 1)
 
 	url := secret.Host
 	client := &http.Client{}
