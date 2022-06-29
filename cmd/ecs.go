@@ -126,6 +126,25 @@ var ecsTailLogsCommand = &cobra.Command{
 	},
 }
 
+var ecsScaleCommand = &cobra.Command{
+	Use:   "scale <up|down>",
+	Short: "Scales up ECS services up or down",
+	Args:  cobra.MaximumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return configPkg.LoadConfig()
+	},
+	Example: "onyx ecs scale up",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(configPkg.GetRegion()))
+		if err != nil {
+			log.Fatalf("unable to load SDK config, %v", err)
+		}
+		ctx := context.Background()
+
+		return ecs.Scale(ctx, cfg, args[0])
+	},
+}
+
 var ecsRestartServiceCommand = &cobra.Command{
 	Use:     "restart --cluster <cluster-name> [--service <service-name>]",
 	Short:   "Forces new deployment of ECS services",
@@ -184,7 +203,7 @@ var ecsRevertToCommand = &cobra.Command{
 }
 
 func init() {
-	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand, ecsSpawnShellCommand, ecsTailLogsCommand, ecsListAccessCommand)
+	ecsCommand.AddCommand(ecsDescribeCommand, ecsRestartServiceCommand, ecsUpdateContainerInstanceCommand, ecsRevertToCommand, ecsSpawnShellCommand, ecsTailLogsCommand, ecsListAccessCommand, ecsScaleCommand)
 
 	ecsRestartServiceCommand.Flags().StringVarP(&ecsClusterName, "cluster", "c", "", "Cluster Name (required)")
 	ecsRestartServiceCommand.MarkFlagRequired("cluster")
