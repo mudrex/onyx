@@ -22,6 +22,7 @@ type C struct {
 	RDSSecretName           string `json:"rds_secret_name"`
 	AuditBucket             string `json:"audit_bucket"`
 	LocalLogFilename        string `json:"local_log_filename"`
+	ECSScaleUpConfig        string `json:"ecs_scale_up_config"`
 	OptimusSecretName       string `json:"optimus_secret_name"`
 	OptimusUsersConfig      string `json:"optimus_users_config"`
 	OptimusRolesConfig      string `json:"optimus_roles_config"`
@@ -125,6 +126,8 @@ func SetConfigKey(key, value string) error {
 		loadedConfig.LocalLogFilename = value
 	case "optimus_secret_name":
 		loadedConfig.OptimusSecretName = value
+	case "ecs_scale_up_config":
+		loadedConfig.ECSScaleUpConfig = value
 	default:
 		return fmt.Errorf("unrecognized key %s", logger.Underline(key))
 	}
