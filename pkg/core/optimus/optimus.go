@@ -84,7 +84,11 @@ func refresh(ctx context.Context, cfg aws.Config, accessConfig string, flag stri
 
 	switch flag {
 	case "users":
-		refreshUsers(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
+		err = refreshUsers(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
+		if err != nil {
+			return err
+		}
+
 	case "roles":
 		refreshRoles(ctx, cfg, loadedConfig, configLock.LockedConfig, optimusSecret)
 	}
@@ -133,7 +137,7 @@ func refreshUsers(
 func addUsers(add Config, secret OptimusSecret) error {
 	for username, roles := range add {
 		for _, role := range roles {
-			sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
+			return sendRoleRequest("/role-strategy/strategy/assignRole", username, role, secret)
 		}
 	}
 	return nil
@@ -142,7 +146,7 @@ func addUsers(add Config, secret OptimusSecret) error {
 func removeUsers(remove Config, secret OptimusSecret) error {
 	for username, roles := range remove {
 		for _, role := range roles {
-			sendRoleRequest("/role-strategy/strategy/unassignRole", username, role, secret)
+			return sendRoleRequest("/role-strategy/strategy/unassignRole", username, role, secret)
 		}
 	}
 	return nil
@@ -207,10 +211,8 @@ func refreshRoles(
 
 func getDiff(config, configLock Config) Config {
 	var diff Config = make(Config)
-
 	for username, roles := range config {
-		intersection := utils.GetIntersectionBetweenStringArrays(roles, configLock[username])
-		diff[username] = utils.GetDifferenceBetweenStringArrays(roles, intersection)
+		diff[username] = utils.GetDiff(roles, configLock[username])
 	}
 
 	return diff
