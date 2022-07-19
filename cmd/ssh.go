@@ -16,7 +16,7 @@ var sshCommand = &cobra.Command{
 var sshDoCommand = &cobra.Command{
 	Use:     "do <user>@<ip>",
 	Short:   "Spawns up the remote machine shell",
-	Example: "onyx ssh do ec2-user@11.11.11.11",
+	Example: "onyx ssh do ec2-user@11.11.11.11\nonyx ssh do ubuntu@11.11.11.11",
 	Args:    cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return configPkg.LoadConfig()
