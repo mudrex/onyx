@@ -25,7 +25,7 @@ func getKeyFile(privateKey string) (key ssh.Signer, err error) {
 func CheckIfUserAbleToLogin(privateKey, host, user string) bool {
 	key, err := getKeyFile(privateKey)
 	if err != nil {
-		logger.Error("Unable to parse private key %s", privateKey)
+		logger.Error("Unable to parse private key %s. Error: %s", privateKey, err.Error())
 		return false
 	}
 
@@ -39,7 +39,7 @@ func CheckIfUserAbleToLogin(privateKey, host, user string) bool {
 
 	client, err := ssh.Dial("tcp", host+":22", c)
 	if err != nil {
-		logger.Error("Unable to connect to host %s@%s. Please check username or private key", user, host)
+		logger.Error("Unable to connect to host %s@%s. Please check username or private key, Error: %s", user, host, err.Error())
 		return false
 	}
 
